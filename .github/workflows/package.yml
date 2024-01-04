@@ -1,9 +1,12 @@
 on:
-  - push
+  release:
+    types: [created]
 
 jobs:
-  release-build:
+  pypi-publish:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -25,24 +28,5 @@ jobs:
         run: poetry install
       - name: build release distributions
         run: poetry build
-      - name: upload dists
-        uses: actions/upload-artifact@v3
-        with:
-          name: release-dists
-          path: dist/
-
-  pypi-publish:
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
-    needs:
-      - release-build
-    permissions:
-      id-token: write
-    steps:
-      - name: Retrieve release distributions
-        uses: actions/download-artifact@v3
-        with:
-          name: release-dists
-          path: dist/
       - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
