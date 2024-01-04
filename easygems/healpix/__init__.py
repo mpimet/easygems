@@ -24,7 +24,7 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
         lon=(("cell",), lons, {"units": "degree_east"}),
     )
 
-def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=False):
+def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=True):
     # NOTE: we want the center coordinate of each pixel, thus we have to
     # compute the linspace over half a pixel size less than the plot's limits
     dx = (xlims[1] - xlims[0]) / nx
@@ -53,7 +53,7 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
     return xr.DataArray(res, coords=[("y", yvals), ("x", xvals)])
 
 
-def healpix_show(var, dpi=None, ax=None, method="nearest", nest=False, **kwargs):
+def healpix_show(var, dpi=None, ax=None, method="nearest", nest=True, **kwargs):
     if ax is None:
         ax = plt.gca()
     fig = ax.get_figure()
@@ -70,7 +70,7 @@ def healpix_show(var, dpi=None, ax=None, method="nearest", nest=False, **kwargs)
     return ax.imshow(im, extent=xlims + ylims, origin="lower", **kwargs)
 
 
-def healpix_contour(var, dpi=None, ax=None, method="linear", nest=False, **kwargs):
+def healpix_contour(var, dpi=None, ax=None, method="linear", nest=True, **kwargs):
     if ax is None:
         ax = plt.gca()
     fig = ax.get_figure()
