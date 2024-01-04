@@ -53,9 +53,15 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
     return xr.DataArray(res, coords=[("y", yvals), ("x", xvals)])
 
 
-def healpix_show(var, nx=1000, ny=1000, ax=None, method="nearest", nest=False, **kwargs):
+def healpix_show(var, dpi=None, ax=None, method="nearest", nest=False, **kwargs):
     if ax is None:
         ax = plt.gca()
+    fig = ax.get_figure()
+
+    if dpi is not None:
+        fig.set_dpi(dpi)
+
+    nx, ny = fig.get_size_inches().astype(int) * int(fig.get_dpi())
 
     xlims = ax.get_xlim()
     ylims = ax.get_ylim()
@@ -64,9 +70,15 @@ def healpix_show(var, nx=1000, ny=1000, ax=None, method="nearest", nest=False, *
     return ax.imshow(im, extent=xlims + ylims, origin="lower", **kwargs)
 
 
-def healpix_contour(var, nx=1000, ny=1000, ax=None, method="linear", nest=False, **kwargs):
+def healpix_contour(var, dpi=None, ax=None, method="linear", nest=False, **kwargs):
     if ax is None:
         ax = plt.gca()
+    fig = ax.get_figure()
+
+    if dpi is not None:
+        fig.set_dpi(dpi)
+
+    nx, ny = fig.get_size_inches().astype(int) * int(fig.get_dpi())
 
     xlims = ax.get_xlim()
     ylims = ax.get_ylim()
