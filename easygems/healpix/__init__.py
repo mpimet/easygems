@@ -68,7 +68,7 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
         res[valid] = var[pix]
     elif method == "linear":
         res[valid] = healpy.get_interp_val(
-            var, theta=points[0], phi=points[1], nest=True, lonlat=True
+            np.asanyarray(var), theta=points[0], phi=points[1], nest=True, lonlat=True
         )
     else:
         raise ValueError(f"interpolation method '{method}' not known")
