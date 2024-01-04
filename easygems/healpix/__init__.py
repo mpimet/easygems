@@ -61,7 +61,7 @@ def healpix_show(var, dpi=None, ax=None, method="nearest", nest=False, **kwargs)
     if dpi is not None:
         fig.set_dpi(dpi)
 
-    nx, ny = fig.get_size_inches().astype(int) * int(fig.get_dpi())
+    _, _, nx, ny = np.array(ax.bbox.bounds, dtype=int)
 
     xlims = ax.get_xlim()
     ylims = ax.get_ylim()
@@ -78,7 +78,7 @@ def healpix_contour(var, dpi=None, ax=None, method="linear", nest=False, **kwarg
     if dpi is not None:
         fig.set_dpi(dpi)
 
-    nx, ny = fig.get_size_inches().astype(int) * int(fig.get_dpi())
+    _, _, nx, ny = np.array(ax.bbox.bounds, dtype=int)
 
     xlims = ax.get_xlim()
     ylims = ax.get_ylim()
