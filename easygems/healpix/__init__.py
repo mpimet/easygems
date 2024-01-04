@@ -13,6 +13,22 @@ def get_nside(dx):
     return dx.crs.healpix_nside
 
 
+def get_npix(dx):
+    return healpy.nside2npix(dx.crs.healpix_nside)
+
+
+def isel_extent(dx, extent):
+    lon = dx.longitude
+    lat = dx.latitude
+
+    w, e, s, n = extent  # Shortcut for N/S/E/W bounds
+
+    is_in_lon = (lon - w) % 360 < (e - w) % 360  # consider sign change
+    is_in_lat = (lat > s) & (lat < n)
+
+    return np.arange(get_npix(dx))[is_in_lon & is_in_lat]
+
+
 def attach_coords(ds: xr.Dataset, signed_lon=False):
     lons, lats = healpy.pix2ang(
         get_nside(ds), np.arange(ds.dims["cell"]), nest=get_nest(ds), lonlat=True
