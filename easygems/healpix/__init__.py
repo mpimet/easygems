@@ -24,6 +24,7 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
         lon=(("cell",), lons, {"units": "degree_east"}),
     )
 
+
 def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=True):
     # NOTE: we want the center coordinate of each pixel, thus we have to
     # compute the linspace over half a pixel size less than the plot's limits
@@ -42,11 +43,17 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
 
     if method == "nearest":
         pix = healpy.ang2pix(
-            healpy.npix2nside(len(var)), theta=points[0], phi=points[1], nest=nest, lonlat=True
+            healpy.npix2nside(len(var)),
+            theta=points[0],
+            phi=points[1],
+            nest=nest,
+            lonlat=True,
         )
         res[valid] = var[pix]
     elif method == "linear":
-        res[valid] = healpy.get_interp_val(var, theta=points[0], phi=points[1], nest=True, lonlat=True)
+        res[valid] = healpy.get_interp_val(
+            var, theta=points[0], phi=points[1], nest=True, lonlat=True
+        )
     else:
         raise ValueError(f"interpolation method '{method}' not known")
 
@@ -86,7 +93,12 @@ def healpix_contour(var, dpi=None, ax=None, method="linear", nest=True, **kwargs
 
     return ax.contour(im.x, im.y, im, **kwargs)
 
+
 __all__ = [
-    "get_nest", "get_nside", "attach_coords",
-    "healpix_resample", "healpix_show", "healpix_contour"
+    "get_nest",
+    "get_nside",
+    "attach_coords",
+    "healpix_resample",
+    "healpix_show",
+    "healpix_contour",
 ]
