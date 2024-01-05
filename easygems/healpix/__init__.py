@@ -17,7 +17,7 @@ def get_npix(dx):
     return healpy.nside2npix(dx.crs.healpix_nside)
 
 
-def isel_extent(dx, extent):
+def get_extent_mask(dx, extent):
     lon = dx.longitude
     lat = dx.latitude
 
@@ -26,7 +26,11 @@ def isel_extent(dx, extent):
     is_in_lon = (lon - w) % 360 < (e - w) % 360  # consider sign change
     is_in_lat = (lat > s) & (lat < n)
 
-    return np.arange(get_npix(dx))[is_in_lon & is_in_lat]
+    return is_in_lon & is_in_lat
+
+
+def isel_extent(dx, extent):
+    return np.arange(get_npix(dx))[get_extent_mask(dx, extent)]
 
 
 def attach_coords(ds: xr.Dataset, signed_lon=False):
