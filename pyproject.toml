@@ -10,6 +10,7 @@ homepage = "https://easy.gems.dkrz.de"
 [tool.poetry.dependencies]
 python = ">=3.10"
 numpy = "*"
+scipy = "*"
 xarray = "*"
 healpy = "*"
 matplotlib = "*"
