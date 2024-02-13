@@ -5,6 +5,7 @@ description = "Processing tools around km-scale earth system modeling"
 authors = ["Tobias Kölling <tobias.koelling@mpimet.mpg.de>"]
 readme = "README.md"
 repository = "https://github.com/mpimet/easygems.git"
+homepage = "https://easy.gems.dkrz.de"
 
 [tool.poetry.dependencies]
 python = ">=3.10"
