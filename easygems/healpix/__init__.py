@@ -18,8 +18,8 @@ def get_npix(dx):
 
 
 def get_extent_mask(dx, extent):
-    lon = dx.longitude
-    lat = dx.latitude
+    lon = dx.lon
+    lat = dx.lat
 
     w, e, s, n = extent  # Shortcut for N/S/E/W bounds
 
