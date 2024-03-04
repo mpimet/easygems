@@ -1,9 +1,11 @@
+import pytest
 import xarray as xr
 from easygems.healpix import attach_coords
 
 
-def test_attach_coords_fixes_crs():
-    ds = xr.Dataset(
+@pytest.fixture
+def raw_ds():
+    return xr.Dataset(
         coords={
             "crs": (
                 ("crs",),
@@ -17,7 +19,9 @@ def test_attach_coords_fixes_crs():
         }
     )
 
-    ds2 = attach_coords(ds)
 
-    assert ds2.crs.shape == ()
-    assert ds2.crs.attrs == ds.crs.attrs
+def test_attach_coords_fixes_crs(raw_ds):
+    ds = attach_coords(raw_ds)
+
+    assert ds.crs.shape == ()
+    assert ds.crs.attrs == raw_ds.crs.attrs
