@@ -33,9 +33,18 @@ def isel_extent(dx, extent):
     return np.arange(get_npix(dx))[get_extent_mask(dx, extent)]
 
 
+def fix_crs(ds: xr.Dataset):
+    # remove crs dimension (crs should really be 0-dimensional, but sometimes we keep a dimension
+    # to be compatible with netcdf
+    ds = ds.drop_vars("crs").assign_coords(crs=((), 0, ds.crs.attrs))
+    return ds
+
+
 def attach_coords(ds: xr.Dataset, signed_lon=False):
+    ds = fix_crs(ds)
+
     lons, lats = healpy.pix2ang(
-        get_nside(ds), np.arange(ds.dims["cell"]), nest=get_nest(ds), lonlat=True
+        get_nside(ds), np.arange(get_npix(ds)), nest=get_nest(ds), lonlat=True
     )
     if signed_lon:
         lons = np.where(lons <= 180, lons, lons - 360)
