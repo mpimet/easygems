@@ -25,3 +25,13 @@ def test_attach_coords_fixes_crs(raw_ds):
 
     assert ds.crs.shape == ()
     assert ds.crs.attrs == raw_ds.crs.attrs
+
+
+def test_attach_coords_adds_lon_lat(raw_ds):
+    ds = attach_coords(raw_ds)
+
+    assert ds.lon.standard_name == "longitude"
+    assert ds.lon.axis == "X"
+
+    assert ds.lat.standard_name == "latitude"
+    assert ds.lat.axis == "Y"

@@ -49,8 +49,16 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
     if signed_lon:
         lons = np.where(lons <= 180, lons, lons - 360)
     return ds.assign_coords(
-        lat=(("cell",), lats, {"units": "degree_north"}),
-        lon=(("cell",), lons, {"units": "degree_east"}),
+        lat=(
+            ("cell",),
+            lats,
+            {"units": "degree_north", "standard_name": "latitude", "axis": "Y"},
+        ),
+        lon=(
+            ("cell",),
+            lons,
+            {"units": "degree_east", "standard_name": "longitude", "axis": "X"},
+        ),
     )
 
 
