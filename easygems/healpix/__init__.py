@@ -1,4 +1,5 @@
 import numpy as np
+import cf_xarray as cf_xarray
 import xarray as xr
 import matplotlib.pylab as plt
 import cartopy.crs as ccrs
@@ -6,15 +7,15 @@ import healpy
 
 
 def get_nest(dx):
-    return dx.crs.healpix_order == "nest"
+    return dx.cf["grid_mapping"].healpix_order == "nest"
 
 
 def get_nside(dx):
-    return dx.crs.healpix_nside
+    return dx.cf["grid_mapping"].healpix_nside
 
 
 def get_npix(dx):
-    return healpy.nside2npix(dx.crs.healpix_nside)
+    return healpy.nside2npix(get_nside(dx))
 
 
 def get_extent_mask(dx, extent):
@@ -36,7 +37,10 @@ def isel_extent(dx, extent):
 def fix_crs(ds: xr.Dataset):
     # remove crs dimension (crs should really be 0-dimensional, but sometimes we keep a dimension
     # to be compatible with netcdf
-    ds = ds.drop_vars("crs").assign_coords(crs=((), 0, ds.crs.attrs))
+    grid_mapping_var = ds.cf["grid_mapping"].name
+    ds = ds.drop_vars(grid_mapping_var).assign_coords(
+        crs=((), 0, ds.cf["grid_mapping"].attrs)
+    )
     return ds
 
 
