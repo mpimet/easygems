@@ -1,13 +1,16 @@
 import pytest
-import xarray as xr
 from easygems.healpix import attach_coords
 
+import cf_xarray as cf_xarray
+import xarray as xr
 
-@pytest.fixture
-def raw_ds():
+
+@pytest.fixture(params=["crs", "healpix"])
+def raw_ds(request):
+    crs_name = request.param
     return xr.Dataset(
         coords={
-            "crs": (
+            crs_name: (
                 ("crs",),
                 [0],
                 {
@@ -23,8 +26,8 @@ def raw_ds():
 def test_attach_coords_fixes_crs(raw_ds):
     ds = attach_coords(raw_ds)
 
-    assert ds.crs.shape == ()
-    assert ds.crs.attrs == raw_ds.crs.attrs
+    assert ds.cf["grid_mapping"].shape == ()
+    assert ds.cf["grid_mapping"].attrs == raw_ds.cf["grid_mapping"].attrs
 
 
 def test_attach_coords_adds_lon_lat(raw_ds):
