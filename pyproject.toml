@@ -16,6 +16,9 @@ healpy = "*"
 matplotlib = "*"
 cartopy = "*"
 
+[tool.poetry.dev-dependencies]
+pytest = "*"
+
 [tool.poetry-dynamic-versioning]
 enable = true
 vcs = "git"
