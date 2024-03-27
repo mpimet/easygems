@@ -7,7 +7,7 @@ import healpy
 
 
 def get_nest(dx):
-    return dx.cf["grid_mapping"].healpix_order == "nest"
+    return dx.cf["grid_mapping"].healpix_order in ["nest", "nested"]
 
 
 def get_nside(dx):
