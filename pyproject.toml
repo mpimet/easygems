@@ -10,7 +10,7 @@ homepage = "https://easy.gems.dkrz.de"
 [tool.poetry.dependencies]
 python = ">=3.10"
 numpy = "*"
-scipy = "*"
+scipy = "<1.14.0"  # FIXME: remove <1.14.0 once https://github.com/healpy/healpy/pull/953 has been released, then adjust healpy accordingly
 xarray = "*"
 cf_xarray = "*"
 healpy = "*"
