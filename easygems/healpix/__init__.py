@@ -101,9 +101,20 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
     return xr.DataArray(res, coords=[("y", yvals), ("x", xvals)])
 
 
+def create_geoaxis(**subplot_kw):
+    """Convenience function to create a figure with a default map projection."""
+    if "projection" not in subplot_kw:
+        subplot_kw["projection"] = ccrs.Robinson(central_longitude=-135.58)
+
+    _, ax = plt.subplots(subplot_kw=subplot_kw)
+    ax.set_global()
+
+    return ax
+
+
 def healpix_show(var, dpi=None, ax=None, method="nearest", nest=True, **kwargs):
     if ax is None:
-        ax = plt.gca()
+        ax = create_geoaxis()
     fig = ax.get_figure()
 
     if dpi is not None:
@@ -120,7 +131,7 @@ def healpix_show(var, dpi=None, ax=None, method="nearest", nest=True, **kwargs):
 
 def healpix_contour(var, dpi=None, ax=None, method="linear", nest=True, **kwargs):
     if ax is None:
-        ax = plt.gca()
+        ax = create_geoaxis()
     fig = ax.get_figure()
 
     if dpi is not None:
