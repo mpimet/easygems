@@ -4,6 +4,7 @@ import xarray as xr
 import matplotlib.pylab as plt
 import cartopy.crs as ccrs
 import healpy
+from cartopy.mpl import geoaxes
 
 
 def get_nest(dx):
@@ -115,11 +116,20 @@ def create_geoaxis(add_coastlines=True, **subplot_kw):
     return ax
 
 
+def get_current_geoaxis(**kwargs):
+    """Return current axis, if it is a GeoAxes, otherwise create a new one."""
+    # `plt.gcf().axes` only checks existing axes, while `plt.gca()` also creates one
+    if (ax := plt.gcf().axes) and isinstance(ax[0], geoaxes.GeoAxes):
+        return ax[0]
+    else:
+        return create_geoaxis(**kwargs)
+
+
 def healpix_show(
     var, dpi=None, ax=None, method="nearest", nest=True, add_coastlines=True, **kwargs
 ):
     if ax is None:
-        ax = create_geoaxis(add_coastlines=add_coastlines)
+        ax = get_current_geoaxis(add_coastlines=add_coastlines)
     fig = ax.get_figure()
 
     if dpi is not None:
@@ -138,7 +148,7 @@ def healpix_contour(
     var, dpi=None, ax=None, method="linear", nest=True, add_coastlines=True, **kwargs
 ):
     if ax is None:
-        ax = create_geoaxis(add_coastlines=add_coastlines)
+        ax = get_current_geoaxis(add_coastlines=add_coastlines)
     fig = ax.get_figure()
 
     if dpi is not None:
