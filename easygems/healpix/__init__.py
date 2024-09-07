@@ -3,8 +3,9 @@ import cf_xarray as cf_xarray
 import xarray as xr
 import matplotlib.pylab as plt
 import cartopy.crs as ccrs
-import healpy
+import healpix
 from cartopy.mpl import geoaxes
+from scipy.interpolate import griddata
 
 
 def get_nest(dx):
@@ -16,7 +17,7 @@ def get_nside(dx):
 
 
 def get_npix(dx):
-    return healpy.nside2npix(get_nside(dx))
+    return healpix.nside2npix(get_nside(dx))
 
 
 def get_extent_mask(dx, extent):
@@ -48,7 +49,7 @@ def fix_crs(ds: xr.Dataset):
 def attach_coords(ds: xr.Dataset, signed_lon=False):
     ds = fix_crs(ds)
 
-    lons, lats = healpy.pix2ang(
+    lons, lats = healpix.pix2ang(
         get_nside(ds), np.arange(get_npix(ds)), nest=get_nest(ds), lonlat=True
     )
     if signed_lon:
@@ -84,8 +85,8 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
     res = np.full(latlon.shape[:-1], np.nan, dtype=var.dtype)
 
     if method == "nearest":
-        pix = healpy.ang2pix(
-            healpy.npix2nside(len(var)),
+        pix = healpix.ang2pix(
+            healpix.npix2nside(len(var)),
             theta=points[0],
             phi=points[1],
             nest=nest,
@@ -93,8 +94,25 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
         )
         res[valid] = var[pix]
     elif method == "linear":
-        res[valid] = healpy.get_interp_val(
-            np.asanyarray(var), theta=points[0], phi=points[1], nest=True, lonlat=True
+        lons, lats = healpix.pix2ang(
+            nside=healpix.npix2nside(len(var)),
+            ipix=np.arange(len(var)),
+            nest=nest,
+            lonlat=True,
+        )
+        lons = (lons + 180) % 360 - 180
+
+        valid_src = ((lons > points[0].min()) & (lons < points[0].max())) | (
+            (lats > points[1].min()) & (lats < points[1].max())
+        )
+
+        res[valid] = griddata(
+            points=np.asarray([lons[valid_src], lats[valid_src]]).T,
+            values=var[valid_src],
+            xi=(points[0], points[1]),
+            method="linear",
+            fill_value=np.nan,
+            rescale=True,
         )
     else:
         raise ValueError(f"interpolation method '{method}' not known")
