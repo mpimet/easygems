@@ -32,8 +32,8 @@ def get_extent_mask(dx, extent):
     return is_in_lon & is_in_lat
 
 
-def get_contiguous_chunks(indices, chunksize):
-    """Return contiguously chunked indices, given a list of indices and a chunksize."""
+def get_full_chunks(indices, chunksize):
+    """Return indices of complete chunks, given a list of indices and a chunksize."""
     used_chunks = np.unique(np.asarray(indices) // chunksize)
 
     return (used_chunks[:, np.newaxis] * chunksize + np.arange(chunksize)).flatten()
@@ -193,7 +193,7 @@ __all__ = [
     "get_nside",
     "get_npix",
     "get_extent_mask",
-    "get_contiguous_chunks",
+    "get_full_chunks",
     "isel_extent",
     "fix_crs",
     "attach_coords",
