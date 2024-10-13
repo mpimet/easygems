@@ -184,8 +184,14 @@ def healpix_contour(
 __all__ = [
     "get_nest",
     "get_nside",
+    "get_npix",
+    "get_extent_mask",
+    "isel_extent",
+    "fix_crs",
     "attach_coords",
     "healpix_resample",
+    "create_geoaxis",
+    "get_current_geoaxis",
     "healpix_show",
     "healpix_contour",
 ]
