@@ -38,3 +38,9 @@ def test_attach_coords_adds_lon_lat(raw_ds):
 
     assert ds.lat.standard_name == "latitude"
     assert ds.lat.axis == "Y"
+
+
+def test_attach_coords_adds_cell(raw_ds):
+    ds = attach_coords(raw_ds)
+
+    assert ds.isel(cell=3).cell == 3
