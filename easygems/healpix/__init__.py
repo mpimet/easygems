@@ -62,6 +62,7 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
     if signed_lon:
         lons = np.where(lons <= 180, lons, lons - 360)
     return ds.assign_coords(
+        cell=np.arange(get_npix(ds)),
         lat=(
             ("cell",),
             lats,
