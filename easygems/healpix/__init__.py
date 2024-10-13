@@ -32,6 +32,16 @@ def get_extent_mask(dx, extent):
     return is_in_lon & is_in_lat
 
 
+def get_contiguous_chunks(indices, chunksize):
+    """Return contiguously chunked indices, given a list of indices and a chunksize."""
+    used_chunks = np.unique(np.asarray(indices) // chunksize)
+
+    a = np.repeat(used_chunks, repeats=chunksize)
+    b = np.repeat(np.arange(chunksize)[:, np.newaxis], repeats=len(used_chunks), axis=1)
+
+    return a * chunksize + b.T.flatten()
+
+
 def isel_extent(dx, extent):
     return np.arange(get_npix(dx))[get_extent_mask(dx, extent)]
 
@@ -186,6 +196,7 @@ __all__ = [
     "get_nside",
     "get_npix",
     "get_extent_mask",
+    "get_contiguous_chunks",
     "isel_extent",
     "fix_crs",
     "attach_coords",
