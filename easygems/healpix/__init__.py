@@ -32,6 +32,13 @@ def get_extent_mask(dx, extent):
     return is_in_lon & is_in_lat
 
 
+def get_full_chunks(indices, chunksize):
+    """Return indices of complete chunks, given a list of indices and a chunksize."""
+    used_chunks = np.unique(np.asarray(indices) // chunksize)
+
+    return (used_chunks[:, np.newaxis] * chunksize + np.arange(chunksize)).flatten()
+
+
 def isel_extent(dx, extent):
     return np.arange(get_npix(dx))[get_extent_mask(dx, extent)]
 
@@ -184,8 +191,15 @@ def healpix_contour(
 __all__ = [
     "get_nest",
     "get_nside",
+    "get_npix",
+    "get_extent_mask",
+    "get_full_chunks",
+    "isel_extent",
+    "fix_crs",
     "attach_coords",
     "healpix_resample",
+    "create_geoaxis",
+    "get_current_geoaxis",
     "healpix_show",
     "healpix_contour",
 ]
