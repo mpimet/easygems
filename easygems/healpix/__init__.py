@@ -43,6 +43,14 @@ def isel_extent(dx, extent):
     return np.arange(get_npix(dx))[get_extent_mask(dx, extent)]
 
 
+def broadcast_array(dx, fill_value=np.nan):
+    """Broadcast a limited-area HEALPix array to full shape."""
+    arr = np.full_like(dx, fill_value, shape=get_npix(dx))
+    arr[dx.cell] = dx.values
+
+    return arr
+
+
 def fix_crs(ds: xr.Dataset):
     # remove crs dimension (crs should really be 0-dimensional, but sometimes we keep a dimension
     # to be compatible with netcdf
