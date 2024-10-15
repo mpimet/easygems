@@ -85,6 +85,10 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
 
 
 def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=True):
+    if not (1 <= healpix.npix2nside(var.size) <= 2**29):
+        # Ensure a full HEALPix grid (at least try to...)
+        var = broadcast_array(var)
+
     # NOTE: we want the center coordinate of each pixel, thus we have to
     # compute the linspace over half a pixel size less than the plot's limits
     dx = (xlims[1] - xlims[0]) / nx
