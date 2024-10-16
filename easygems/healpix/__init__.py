@@ -13,7 +13,10 @@ def get_nest(dx):
 
 
 def get_nside(dx):
-    return dx.cf["grid_mapping"].healpix_nside
+    try:
+        return dx.cf["grid_mapping"].healpix_nside
+    except (AttributeError, KeyError):
+        return healpix.npix2nside(dx.size)
 
 
 def get_npix(dx):
@@ -102,16 +105,27 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
 
     if method == "nearest":
         pix = healpix.ang2pix(
-            healpix.npix2nside(len(var)),
+            get_nside(var),
             theta=points[0],
             phi=points[1],
             nest=nest,
             lonlat=True,
         )
-        res[valid] = var[pix]
+        if var.size < get_npix(var):
+            if not isinstance(var, xr.DataArray):
+                raise ValueError(
+                    "Sparse HEALPix grids are only supported as xr.DataArray"
+                )
+
+            # For xr.DataArrays, selection from sparse HEALPix grids is supported
+            res[valid] = var.sel(cell=pix, method="nearest").where(
+                lambda x: x.cell == pix
+            )
+        else:
+            res[valid] = var[pix]
     elif method == "linear":
         lons, lats = healpix.pix2ang(
-            nside=healpix.npix2nside(len(var)),
+            nside=get_nside(var),
             ipix=np.arange(len(var)),
             nest=nest,
             lonlat=True,
