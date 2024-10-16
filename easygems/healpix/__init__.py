@@ -13,7 +13,10 @@ def get_nest(dx):
 
 
 def get_nside(dx):
-    return dx.cf["grid_mapping"].healpix_nside
+    try:
+        return dx.cf["grid_mapping"].healpix_nside
+    except (AttributeError, KeyError):
+        return healpix.npix2nside(dx.size)
 
 
 def get_npix(dx):
