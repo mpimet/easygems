@@ -111,7 +111,18 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
             nest=nest,
             lonlat=True,
         )
-        res[valid] = var[pix]
+        if var.size < get_npix(var):
+            if not isinstance(var, xr.DataArray):
+                raise ValueError(
+                    "Sparse HEALPix grids are only supported as xr.DataArray"
+                )
+
+            # For xr.DataArrays, selection from sparse HEALPix grids is supported
+            res[valid] = var.sel(cell=pix, method="nearest").where(
+                lambda x: x.cell == pix
+            )
+        else:
+            res[valid] = var[pix]
     elif method == "linear":
         lons, lats = healpix.pix2ang(
             nside=get_nside(var),
