@@ -102,7 +102,7 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
 
     if method == "nearest":
         pix = healpix.ang2pix(
-            healpix.npix2nside(len(var)),
+            get_nside(var),
             theta=points[0],
             phi=points[1],
             nest=nest,
@@ -111,7 +111,7 @@ def healpix_resample(var, xlims, ylims, nx, ny, src_crs, method="nearest", nest=
         res[valid] = var[pix]
     elif method == "linear":
         lons, lats = healpix.pix2ang(
-            nside=healpix.npix2nside(len(var)),
+            nside=get_nside(var),
             ipix=np.arange(len(var)),
             nest=nest,
             lonlat=True,
