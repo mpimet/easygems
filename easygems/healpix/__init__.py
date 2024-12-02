@@ -67,13 +67,17 @@ def fix_crs(ds: xr.Dataset):
 def attach_coords(ds: xr.Dataset, signed_lon=False):
     ds = fix_crs(ds)
 
-    lons, lats = healpix.pix2ang(
-        get_nside(ds), np.arange(get_npix(ds)), nest=get_nest(ds), lonlat=True
-    )
+    cell = ds.get("cell") if "cell" in ds.dims else np.arange(get_npix(ds))
+
+    lons, lats = healpix.pix2ang(get_nside(ds), cell, nest=get_nest(ds), lonlat=True)
     if signed_lon:
         lons = np.where(lons <= 180, lons, lons - 360)
+    else:
+        # Both healpy and healpix produce longitudes in the range [-45, 360]
+        # While this is mathematically valid, it may be unexpected in Earth system science.
+        lons %= 360
     return ds.assign_coords(
-        cell=np.arange(get_npix(ds)),
+        cell=cell,
         lat=(
             ("cell",),
             lats,
