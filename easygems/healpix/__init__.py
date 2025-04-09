@@ -178,7 +178,14 @@ def get_current_geoaxis(**kwargs):
 
 
 def healpix_show(
-    var, dpi=None, ax=None, method="nearest", nest=True, add_coastlines=True, antialias=False, **kwargs
+    var,
+    dpi=None,
+    ax=None,
+    method="nearest",
+    nest=True,
+    add_coastlines=True,
+    antialias=False,
+    **kwargs,
 ):
     if ax is None:
         ax = get_current_geoaxis(add_coastlines=add_coastlines)
