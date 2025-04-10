@@ -178,7 +178,14 @@ def get_current_geoaxis(**kwargs):
 
 
 def healpix_show(
-    var, dpi=None, ax=None, method="nearest", nest=True, add_coastlines=True, **kwargs
+    var,
+    dpi=None,
+    ax=None,
+    method="nearest",
+    nest=True,
+    add_coastlines=True,
+    antialias=False,
+    **kwargs,
 ):
     if ax is None:
         ax = get_current_geoaxis(add_coastlines=add_coastlines)
@@ -188,6 +195,10 @@ def healpix_show(
         fig.set_dpi(dpi)
 
     _, _, nx, ny = np.array(ax.bbox.bounds, dtype=int)
+
+    if antialias:
+        nx *= 2
+        ny *= 2
 
     xlims = ax.get_xlim()
     ylims = ax.get_ylim()
