@@ -16,6 +16,14 @@ def get_nside(dx):
     try:
         return dx.cf["grid_mapping"].healpix_nside
     except (AttributeError, KeyError):
+        if len(dx.squeeze().dims) > 1:
+            raise ValueError(
+                "Cannot infer the HEALPix resolution from a multidimensional dataset.\n"
+                "Consider adding a coordinate reference system to the dataset or passing a one-dimensional array instead.\n"
+                "See also: easygems.healpix.attach_coords\n"
+                "Reference: https://easy.gems.dkrz.de/Processing/datasets/remapping.html#storing-the-coordinate-reference-system"
+
+            )
         return healpix.npix2nside(dx.size)
 
 
