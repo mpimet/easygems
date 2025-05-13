@@ -2,6 +2,7 @@ import pytest
 from easygems.healpix import attach_coords
 
 import cf_xarray as cf_xarray
+import numpy as np
 import xarray as xr
 
 
@@ -45,3 +46,12 @@ def test_attach_coords_adds_cell(raw_ds):
     ds = attach_coords(raw_ds)
 
     assert ds.isel(cell=3).cell == 3
+
+
+def test_attach_coords_no_crs():
+    ds = xr.Dataset(coords={"cell": np.arange(48)})
+
+    ds = attach_coords(ds)
+
+    assert ds.crs
+    assert ds.crs.healpix_nside == 2
