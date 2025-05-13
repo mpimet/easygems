@@ -28,6 +28,7 @@ def test_attach_coords_fixes_crs(raw_ds):
 
     assert ds.cf["grid_mapping"].shape == ()
     assert ds.cf["grid_mapping"].attrs == raw_ds.cf["grid_mapping"].attrs
+    assert ds.cf["grid_mapping"].name == raw_ds.cf["grid_mapping"].name
 
 
 def test_attach_coords_adds_lon_lat(raw_ds):
