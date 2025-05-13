@@ -2,6 +2,7 @@ import pytest
 from easygems.healpix import attach_coords
 
 import cf_xarray as cf_xarray
+import numpy as np
 import xarray as xr
 
 
@@ -28,6 +29,7 @@ def test_attach_coords_fixes_crs(raw_ds):
 
     assert ds.cf["grid_mapping"].shape == ()
     assert ds.cf["grid_mapping"].attrs == raw_ds.cf["grid_mapping"].attrs
+    assert ds.cf["grid_mapping"].name == raw_ds.cf["grid_mapping"].name
 
 
 def test_attach_coords_adds_lon_lat(raw_ds):
@@ -44,3 +46,12 @@ def test_attach_coords_adds_cell(raw_ds):
     ds = attach_coords(raw_ds)
 
     assert ds.isel(cell=3).cell == 3
+
+
+def test_attach_coords_no_crs():
+    ds = xr.Dataset(coords={"cell": np.arange(48)})
+
+    ds = attach_coords(ds)
+
+    assert ds.crs
+    assert ds.crs.healpix_nside == 2

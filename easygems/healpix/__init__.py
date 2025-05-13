@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import cf_xarray as cf_xarray
 import xarray as xr
@@ -22,7 +24,6 @@ def get_nside(dx):
                 "Consider adding a coordinate reference system to the dataset or passing a one-dimensional array instead.\n"
                 "See also: easygems.healpix.attach_coords\n"
                 "Reference: https://easy.gems.dkrz.de/Processing/datasets/remapping.html#storing-the-coordinate-reference-system"
-
             )
         return healpix.npix2nside(dx.size)
 
@@ -67,17 +68,46 @@ def fix_crs(ds: xr.Dataset):
     # to be compatible with netcdf
     grid_mapping_var = ds.cf["grid_mapping"].name
     ds = ds.drop_vars(grid_mapping_var).assign_coords(
-        crs=((), 0, ds.cf["grid_mapping"].attrs)
+        {grid_mapping_var: ((), 0, ds.cf["grid_mapping"].attrs)}
     )
     return ds
 
 
+def guess_crs(ds: xr.Dataset):
+    warnings.warn(
+        "No CRS coordinate was found. Attempting to infer it from the dataset shape. Please check the result!",
+        stacklevel=4,
+    )
+
+    if "cell" in ds.dims:
+        pix = ds.cell
+    elif "values" in ds.dims:
+        pix = ds.values
+
+    crs = xr.DataArray(
+        name="crs",
+        attrs={
+            "grid_mapping_name": "healpix",
+            "healpix_nside": healpix.npix2nside(pix.size),
+            "healpix_order": "nest",
+        },
+    )
+    return ds.assign_coords(crs=crs)
+
+
 def attach_coords(ds: xr.Dataset, signed_lon=False):
-    ds = fix_crs(ds)
+    try:
+        ds.cf["grid_mapping"]
+    except KeyError:
+        ds = guess_crs(ds)
+    else:
+        ds = fix_crs(ds)
 
     cell = ds.get("cell") if "cell" in ds.dims else np.arange(get_npix(ds))
 
-    lons, lats = healpix.pix2ang(get_nside(ds), cell, nest=get_nest(ds), lonlat=True)
+    lons, lats = healpix.pix2ang(
+        get_nside(ds), cell.astype("i8"), nest=get_nest(ds), lonlat=True
+    )
     if signed_lon:
         lons = np.where(lons <= 180, lons, lons - 360)
     else:
