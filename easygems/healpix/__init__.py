@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import cf_xarray as cf_xarray
 import xarray as xr
@@ -71,8 +73,35 @@ def fix_crs(ds: xr.Dataset):
     return ds
 
 
+def guess_crs(ds: xr.Dataset):
+    warnings.warn(
+        "No CRS coordinate was found. Attempting to infer it from the dataset shape. Please check the result!",
+        stacklevel=4,
+    )
+
+    if "cell" in ds.dims:
+        pix = ds.cell
+    elif "values" in ds.dims:
+        pix = ds.values
+
+    crs = xr.DataArray(
+        name="crs",
+        attrs={
+            "grid_mapping_name": "healpix",
+            "healpix_nside": healpix.npix2nside(pix.size),
+            "healpix_order": "nest",
+        },
+    )
+    return ds.assign_coords(crs=crs)
+
+
 def attach_coords(ds: xr.Dataset, signed_lon=False):
-    ds = fix_crs(ds)
+    try:
+        ds.cf["grid_mapping"]
+    except KeyError:
+        ds = guess_crs(ds)
+    else:
+        ds = fix_crs(ds)
 
     cell = ds.get("cell") if "cell" in ds.dims else np.arange(get_npix(ds))
 
