@@ -22,7 +22,6 @@ def get_nside(dx):
                 "Consider adding a coordinate reference system to the dataset or passing a one-dimensional array instead.\n"
                 "See also: easygems.healpix.attach_coords\n"
                 "Reference: https://easy.gems.dkrz.de/Processing/datasets/remapping.html#storing-the-coordinate-reference-system"
-
             )
         return healpix.npix2nside(dx.size)
 
@@ -67,7 +66,7 @@ def fix_crs(ds: xr.Dataset):
     # to be compatible with netcdf
     grid_mapping_var = ds.cf["grid_mapping"].name
     ds = ds.drop_vars(grid_mapping_var).assign_coords(
-        crs=((), 0, ds.cf["grid_mapping"].attrs)
+        {grid_mapping_var: ((), 0, ds.cf["grid_mapping"].attrs)}
     )
     return ds
 
