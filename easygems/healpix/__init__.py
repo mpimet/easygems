@@ -77,7 +77,9 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
 
     cell = ds.get("cell") if "cell" in ds.dims else np.arange(get_npix(ds))
 
-    lons, lats = healpix.pix2ang(get_nside(ds), cell, nest=get_nest(ds), lonlat=True)
+    lons, lats = healpix.pix2ang(
+        get_nside(ds), cell.astype("i8"), nest=get_nest(ds), lonlat=True
+    )
     if signed_lon:
         lons = np.where(lons <= 180, lons, lons - 360)
     else:
