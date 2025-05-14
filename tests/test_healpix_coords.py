@@ -1,5 +1,5 @@
 import pytest
-from easygems.healpix import attach_coords
+from easygems.healpix import attach_coords, get_nside
 
 import cf_xarray as cf_xarray
 import numpy as np
@@ -55,3 +55,8 @@ def test_attach_coords_no_crs():
 
     assert ds.crs
     assert ds.crs.healpix_nside == 2
+
+
+def test_get_nside(raw_ds):
+    assert get_nside(raw_ds) == 1
+    assert get_nside(np.arange(12)) == 1
