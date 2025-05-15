@@ -264,6 +264,43 @@ def healpix_contour(
     return ax.contour(im.x, im.y, im, **kwargs)
 
 
+def imperfect_healpix_show(da, zoom, ax=None, **kwargs):
+    """
+    A wrapper around `healpix_show` that dynamically adjusts `nside` based on the dataset's cell count. This is intended for plotting dataarryas that don't have cells corresponding to a valid nside number expected by healpix.
+
+    The way it is written currently is mostly bypassing the error catch in the get_nside function by forcefully setting the healpix_nside value to a valid number.
+
+    Errors can be expected if the longitude ranges are too big (e.g. if your longitude ranges are greater than 30 deg, I would check plots once with healpix_show to make sure some pixels aren't missing!)
+    """
+
+    num_cells = len(da.cell.values)
+    nside = 2**zoom
+
+    expected_npix = 12 * nside**2
+    if num_cells != expected_npix:
+        print(
+            f"Warning: The dataset contains {num_cells} cells, which is a subset of the global nside={nside} grid."
+        )
+
+    coord_dict = {
+        "grid_mapping_name": "healpix",
+        "healpix_nside": nside,
+        "healpix_order": "nested",
+    }
+    ds = da.to_dataset(name="temp_var")
+    ds = ds.assign_coords(
+        crs=(
+            (),
+            0,
+            coord_dict,
+        )
+    )
+    ds = attach_coords(ds)
+    data = ds["temp_var"].sortby("cell")
+
+    return healpix_show(data, ax=ax, **kwargs)
+
+
 __all__ = [
     "get_nest",
     "get_nside",
