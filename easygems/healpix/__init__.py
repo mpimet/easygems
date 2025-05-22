@@ -83,6 +83,8 @@ def guess_crs(ds: xr.Dataset):
         pix = ds.cell
     elif "values" in ds.dims:
         pix = ds.values
+    elif "value" in ds.dims:
+        pix = ds.value
 
     crs = xr.DataArray(
         name="crs",
