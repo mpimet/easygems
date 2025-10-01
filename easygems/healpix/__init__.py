@@ -6,8 +6,13 @@ import xarray as xr
 import matplotlib.pylab as plt
 import cartopy.crs as ccrs
 import healpix
+import healpy as hp
 from cartopy.mpl import geoaxes
 from scipy.interpolate import griddata
+
+
+def is_healpix(ds):
+    return "crs" in ds.coords and ds.crs.grid_mapping_name == "healpix"
 
 
 def get_nest(dx):
@@ -30,6 +35,16 @@ def get_nside(dx):
 
 def get_npix(dx):
     return healpix.nside2npix(get_nside(dx))
+
+
+def get_zoom(ds):
+    return hp.nside2order(get_nside(ds))
+
+
+def pix_size(zoom):
+    """Approximate pixel size in km."""
+    Earth_surface = 510072000  # [km^2]
+    return np.sqrt(Earth_surface / hp.nside2npix(hp.order2nside(zoom)))
 
 
 def get_extent_mask(dx, extent):
@@ -55,12 +70,203 @@ def isel_extent(dx, extent):
     return np.arange(get_npix(dx))[get_extent_mask(dx, extent)]
 
 
+def isel_extent_from_zoom(zoom, extent):
+    """
+    Return indices of cells whose centers lie inside a lon-lat rectangle specified
+    by extent - as the isel_extent function but takes the zoom level instead of a
+    dataset as an argument.
+    """
+    nside = hp.order2nside(zoom)
+    npix = hp.nside2npix(nside)
+    lon, lat = hp.pix2ang(nside, np.arange(npix), nest=True, lonlat=True)
+    w, e, s, n = extent  # Shortcut for N/S/E/W bounds
+    is_in_lon = (lon - w) % 360 < (e - w) % 360  # consider sign change
+    is_in_lat = (lat > s) & (lat < n)
+    return np.arange(npix)[is_in_lon & is_in_lat]
+
+
+def isel_refine(cells_coarse, chunksize):
+    """
+    Returns indices of cells of a fine resolution grid (higher zoom level) belonging
+    to given cells of a coarse resolution grid (lower zoom level), both in nest ordering.
+    """
+    return (
+        cells_coarse.flatten()[:, np.newaxis] * chunksize + np.arange(chunksize)
+    ).flatten()
+
+
+def nest_pattern(nside):
+    """
+    Returns a 2D array with indices of cells of a fine resolution grid belonging
+    to the 0th cell (in nest ordering) of a coarse resolution grid. The fine grid
+    is nside times finer than the coarse grid. The indices are arranged according
+    to the rules of nest pixel ordering - see Fig. 1 in Gorski et al. 2005.
+    """
+    n = int(nside)
+    ind = np.zeros((n, n), dtype="i")
+
+    chunksize = n**2
+    for i in range(chunksize):
+        binstr = f"{i:032b}"
+        ix = int(binstr[1::2], 2)
+        iy = int(binstr[0::2], 2)
+        ind[ix, iy] = i
+
+    return ind[::-1, ::-1]
+
+
+def isel_tiles(cells_coarse, chunksize):
+    """
+    Returns indices of cells of a fine resolution grid belonging to given cells
+    of a coarse resolution grid, both specified in nest ordering. The indices are
+    arranged in a 3D array where the last two dimensions correspond to the nested
+    2D pattern of fine resolution cells contained in each coarse cell of the input.
+    """
+    return cells_coarse.flatten()[:, np.newaxis, np.newaxis] * chunksize + nest_pattern(
+        chunksize**0.5
+    )
+
+
+def coarsened_fun(
+    ds, fun=lambda x: x, zoom_coarse=0, cells_coarse=np.array([]), **fopts
+):
+    """
+    Apply a function to a dataset/datarray and coarsen it to a desired zoom level so that
+    the result contains the appropriate grid cells at the coarse zoom. The default function
+    applied is identity - it can be used to select a geographical domain from a higher-resolution
+    dataset and coarsen it.
+    """
+
+    zoom_fine = get_zoom(ds)
+    chunksize = 4 ** (zoom_fine - zoom_coarse)
+
+    if cells_coarse.size == 0:
+        cells_coarse = np.unique(ds.cell.values // chunksize)
+
+    if zoom_coarse < zoom_fine:
+        # print(f"{zoom_fine:d}->{zoom_coarse:d}")
+        cells_fine = isel_refine(cells_coarse, chunksize)
+        return (
+            fun(ds.sel(cell=cells_fine), **fopts)
+            .coarsen(cell=chunksize)
+            .mean()
+            .assign_coords(
+                cell=cells_coarse,
+                crs=xr.DataArray(
+                    name="crs",
+                    data=0,
+                    attrs={
+                        "grid_mapping_name": "healpix",
+                        "healpix_nside": 2**zoom_coarse,
+                        "healpix_order": "nest",
+                    },
+                ),
+            )
+            .assign_attrs(crs_origin=ds.crs)
+        )
+
+    else:
+        # print(f"{zoom_coarse:d}->{zoom_coarse:d} (no coarsening)")
+        return fun(ds.sel(cell=cells_coarse), **fopts)
+
+
+def select_lonlat_rectangle(ds, extent, zoom=-1):
+    """
+    Select a subset of dataset/datarray corresponding to a lon-lat rectangle
+    given in extent and return it at a desired zoom level (for an input on a halpix
+    grid) or just select the rectangle (for an input on another grid).
+    """
+    if is_healpix(ds):
+        if zoom < 0:
+            zoom = get_zoom(ds)
+        cells = isel_extent_from_zoom(zoom, extent)
+        return coarsened_fun(ds, zoom_coarse=zoom, cells_coarse=cells)
+    else:
+        icells = get_extent_mask(ds, extent).compute()
+        return ds.isel(cell=icells)
+
+
 def broadcast_array(dx, fill_value=np.nan):
     """Broadcast a limited-area HEALPix array to full shape."""
     arr = np.full_like(dx, fill_value, shape=get_npix(dx))
     arr[dx.cell] = dx.values
 
     return arr
+
+
+def match_coarse_cells(ds, zoom_coarse=0, cells_coarse=np.array([])):
+    """
+    For each cell of a fine grid, assign a matching index of the cell
+    of a coarse grid to which it belongs.
+    """
+
+    zoom_fine = get_zoom(ds)
+    chunksize = 4 ** (zoom_fine - zoom_coarse)
+
+    if cells_coarse.size == 0:
+        cells_fine = ds.cell.values
+        cells_coarse_vec = ds.cell.values // chunksize
+    else:
+        cells_fine = isel_refine(cells_coarse, chunksize)
+        cells_coarse_vec = np.tile(cells_coarse[:, np.newaxis], chunksize).flatten()
+
+    return ds.sel(cell=cells_fine).assign_coords(
+        cell_coarse=("cell", cells_coarse_vec),
+        crs_coarse=xr.DataArray(
+            name="crs_coarse",
+            data=0,
+            attrs={
+                "healpix_nside": hp.order2nside(zoom_coarse),
+                "healpix_order": "nest",
+                "zoom": zoom_coarse,
+            },
+        ),
+    )
+
+
+def matched2tiled(ds):
+    """
+    Reshape a dataset, which already involves precomputed matching indices of
+    coarser resolution cells, by splitting the original dimension 'cell' into
+    ('cell_coarse','SW','SE') where 'cell_coarse' is the cell index of the coarse
+    grid while 'SW' and 'SE' are distances in southwest and southeast direction
+    spanning the tile which contains fine grid cells corresponding to each coarse
+    grid cell.
+    """
+
+    zoom_fine = get_zoom(ds)
+    zoom_coarse = hp.nside2order(ds.crs_coarse.attrs["healpix_nside"])
+    chunksize = 4 ** (zoom_fine - zoom_coarse)
+    chunkside = 2 ** (zoom_fine - zoom_coarse)
+
+    cells_coarse = np.unique(ds.cell_coarse.values)
+    cells_fine = isel_tiles(cells_coarse, chunksize).flatten()
+    cells_tile = nest_pattern(chunkside).flatten()
+
+    px = pix_size(zoom_fine)
+
+    return (
+        ds.sel(cell=cells_fine)
+        .coarsen(cell=chunksize)
+        .construct(cell=("cell_coarse", "subcell"))
+        .assign_coords(
+            cell_coarse=("cell_coarse", cells_coarse), subcell=("subcell", cells_tile)
+        )
+        .coarsen(subcell=chunkside)
+        .construct(subcell=("SW", "SE"))
+        .assign_coords(SW=np.arange(chunkside) * px, SE=np.arange(chunkside) * px)
+    )
+
+
+def reshape_in_tiles(ds, zoom_coarse=0, cells_coarse=np.array([])):
+    """
+    Reshape a dataset by splitting the original dimension 'cell' into
+    ('cell_coarse','SW','SE') where 'cell_coarse' is the cell index of the
+    selected coarser grid while 'SW' and 'SE' are distances in southwest and
+    southeast direction spanning the tile which contains fine grid cells
+    corresponding to each coarse grid cell.
+    """
+    return matched2tiled(match_coarse_cells(ds, zoom_coarse, cells_coarse))
 
 
 def fix_crs(ds: xr.Dataset):
