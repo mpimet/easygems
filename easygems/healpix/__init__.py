@@ -194,6 +194,81 @@ def broadcast_array(dx, fill_value=np.nan):
     return arr
 
 
+def match_coarse_cells(ds, zoom_coarse=0, cells_coarse=np.array([])):
+    """
+    For each cell of a fine grid, assign a matching index of the cell
+    of a coarse grid to which it belongs.
+    """
+
+    zoom_fine = get_zoom(ds)
+    chunksize = 4 ** (zoom_fine - zoom_coarse)
+
+    if cells_coarse.size == 0:
+        cells_fine = ds.cell.values
+        cells_coarse_vec = ds.cell.values // chunksize
+    else:
+        cells_fine = isel_refine(cells_coarse, chunksize)
+        cells_coarse_vec = np.tile(cells_coarse[:, np.newaxis], chunksize).flatten()
+
+    return ds.sel(cell=cells_fine).assign_coords(
+        cell_coarse=("cell", cells_coarse_vec),
+        crs_coarse=xr.DataArray(
+            name="crs_coarse",
+            data=0,
+            attrs={
+                "healpix_nside": hp.order2nside(zoom_coarse),
+                "healpix_order": "nest",
+                "zoom": zoom_coarse,
+            },
+        ),
+    )
+
+
+def matched2tiled(ds):
+    """
+    Reshape a dataset, which already involves precomputed matching indices of
+    coarser resolution cells, by splitting the original dimension 'cell' into
+    ('cell_coarse','SW','SE') where 'cell_coarse' is the cell index of the coarse
+    grid while 'SW' and 'SE' are distances in southwest and southeast direction
+    spanning the tile which contains fine grid cells corresponding to each coarse
+    grid cell.
+    """
+
+    zoom_fine = get_zoom(ds)
+    zoom_coarse = hp.nside2order(ds.crs_coarse.attrs["healpix_nside"])
+    chunksize = 4 ** (zoom_fine - zoom_coarse)
+    chunkside = 2 ** (zoom_fine - zoom_coarse)
+
+    cells_coarse = np.unique(ds.cell_coarse.values)
+    cells_fine = isel_tiles(cells_coarse, chunksize).flatten()
+    cells_tile = nest_pattern(chunkside).flatten()
+
+    px = pix_size(zoom_fine)
+
+    return (
+        ds.sel(cell=cells_fine)
+        .coarsen(cell=chunksize)
+        .construct(cell=("cell_coarse", "subcell"))
+        .assign_coords(
+            cell_coarse=("cell_coarse", cells_coarse), subcell=("subcell", cells_tile)
+        )
+        .coarsen(subcell=chunkside)
+        .construct(subcell=("SW", "SE"))
+        .assign_coords(SW=np.arange(chunkside) * px, SE=np.arange(chunkside) * px)
+    )
+
+
+def reshape_in_tiles(ds, zoom_coarse=0, cells_coarse=np.array([])):
+    """
+    Reshape a dataset by splitting the original dimension 'cell' into
+    ('cell_coarse','SW','SE') where 'cell_coarse' is the cell index of the
+    selected coarser grid while 'SW' and 'SE' are distances in southwest and
+    southeast direction spanning the tile which contains fine grid cells
+    corresponding to each coarse grid cell.
+    """
+    return matched2tiled(match_coarse_cells(ds, zoom_coarse, cells_coarse))
+
+
 def fix_crs(ds: xr.Dataset):
     # remove crs dimension (crs should really be 0-dimensional, but sometimes we keep a dimension
     # to be compatible with netcdf
