@@ -10,6 +10,10 @@ from cartopy.mpl import geoaxes
 from scipy.interpolate import griddata
 
 
+def is_healpix(ds):
+    return ('crs' in ds.coords)
+
+
 def get_nest(dx):
     return dx.cf["grid_mapping"].healpix_order in ["nest", "nested"]
 
