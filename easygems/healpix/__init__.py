@@ -11,7 +11,7 @@ from scipy.interpolate import griddata
 
 
 def is_healpix(ds):
-    return ('crs' in ds.coords)
+    return "crs" in ds.coords
 
 
 def get_nest(dx):
