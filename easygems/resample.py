@@ -5,7 +5,7 @@ from scipy.spatial import Delaunay, KDTree
 
 
 def latlon2xyz(coords, R=1.0):
-    """Convert geographic coordaintes into 3D Cartesian."""
+    """Convert geocentric coordaintes into 3D Cartesian."""
     lon = np.deg2rad(coords[:, 0])
     lat = np.deg2rad(coords[:, 1])
 
