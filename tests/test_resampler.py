@@ -46,3 +46,14 @@ def test_kdtree_resampler():
 
     res = r.get_values(val, [[0, 0], [-170, -90]])
     assert np.array_equal(res, np.array([2, 1]))
+
+
+def test_kdtree_resampler_lon_range():
+    lon = [10, 190, 350]
+    lat = [0, 0, 0]
+    val = [1, 2, 3]
+
+    r = resample.KDTreeResampler(lon=lon, lat=lat)
+
+    res = r.get_values(val, [[10, 0], [-170, 0], [-10, 0]])
+    assert np.array_equal(res, np.array([1, 2, 3]))

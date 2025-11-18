@@ -48,6 +48,7 @@ class KDTreeResampler(Resampler):
     """Build a KDTree for lat/lon pairs to find the nearest neighbour."""
 
     def __init__(self, lon, lat):
+        lon = (np.asarray(lon) + 180) % 360 - 180  # Ensure lon [-180, 180]
         self.tree = KDTree(np.array([lon, lat]).T)
 
     def get_values(self, m, coords):
@@ -60,6 +61,7 @@ class DelaunayResampler(Resampler):
     """Perform a Delaunay triangulation to find the neighbouring cells."""
 
     def __init__(self, lon, lat):
+        lon = (np.asarray(lon) + 180) % 360 - 180  # Ensure lon [-180, 180]
         self.tri = Delaunay(np.stack([lon, lat], axis=-1))
 
     def get_values(self, m, coords):
