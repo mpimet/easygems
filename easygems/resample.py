@@ -4,6 +4,18 @@ import xarray as xr
 from scipy.spatial import Delaunay, KDTree
 
 
+def latlon2xyz(coords, R=1.0):
+    """Convert geographic coordaintes into 3D Cartesian."""
+    lon = np.deg2rad(coords[:, 0])
+    lat = np.deg2rad(coords[:, 1])
+
+    x = R * np.cos(lat) * np.cos(lon)
+    y = R * np.cos(lat) * np.sin(lon)
+    z = R * np.sin(lat)
+
+    return np.stack([x, y, z]).T
+
+
 class Resampler:
     def get_values(self, m, coords):
         """Return value(s) from a map.
@@ -80,11 +92,14 @@ class KDTreeResampler(Resampler):
     """Build a KDTree for lat/lon pairs to find the nearest neighbour."""
 
     def __init__(self, lon, lat):
-        lon = (np.asarray(lon) + 180) % 360 - 180  # Ensure lon [-180, 180]
-        self.tree = KDTree(np.array([lon, lat]).T)
+        xyz = latlon2xyz(np.array([lon, lat]).T)
+
+        self.tree = KDTree(xyz)
 
     def get_values(self, m, coords):
-        _, idx = self.tree.query(coords)
+        xyz = latlon2xyz(np.asarray(coords))
+
+        _, idx = self.tree.query(xyz)
 
         return np.asarray(m)[idx]
 
