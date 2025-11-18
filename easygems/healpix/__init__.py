@@ -130,28 +130,14 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
     )
 
 
-def healpix_show(var, method=None, nest=True, **kwargs):
-    if method is not None:
-        raise ValueError(
-            "The method keyword is no longer supported.\n"
-            "You can use `easygems.show.map_show()` with a"
-            " custom `easygens.resample.Resampler`."
-        )
-
-    r = HEALPixResampler(nside=get_nside(var), nest=nest)
+def healpix_show(var, method="nearest", nest=True, **kwargs):
+    r = HEALPixResampler(nside=get_nside(var), nest=nest, method=method)
 
     return map_show(var, resampler=r, **kwargs)
 
 
-def healpix_contour(var, method=None, nest=True, **kwargs):
-    if method is not None:
-        raise ValueError(
-            "The method keyword is no longer supported.\n"
-            "You can use `easygems.show.map_show()` with a"
-            " custom `easygens.resample.Resampler`."
-        )
-
-    r = HEALPixResampler(nside=get_nside(var), nest=nest)
+def healpix_contour(var, method="nearest", nest=True, **kwargs):
+    r = HEALPixResampler(nside=get_nside(var), nest=nest, method=method)
 
     return map_contour(var, resampler=r, **kwargs)
 

@@ -1,6 +1,7 @@
 from easygems import resample
 
 import numpy as np
+import pytest
 import xarray as xr
 
 
@@ -32,6 +33,18 @@ def test_healpix_resampler_sparse():
     r = resample.HEALPixResampler(nside=nside, nest=nest)
 
     assert r.get_values(val, [[0, 0]]) == np.array([4])
+
+
+def test_healpix_resampler_linear():
+    pytest.importorskip("healpy")
+
+    nside = 1
+    nest = True
+    val = np.arange(12)
+
+    r = resample.HEALPixResampler(nside=nside, nest=nest, method="linear")
+
+    assert r.get_values(val, [[45, 0]]) == np.array([4.5])
 
 
 def test_kdtree_resampler():
