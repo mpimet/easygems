@@ -3,17 +3,7 @@ import numpy as np
 import xarray as xr
 from scipy.spatial import Delaunay, KDTree
 
-
-def latlon2xyz(coords, R=1.0):
-    """Convert geocentric coordaintes into 3D Cartesian."""
-    lon = np.deg2rad(coords[:, 0])
-    lat = np.deg2rad(coords[:, 1])
-
-    x = R * np.cos(lat) * np.cos(lon)
-    y = R * np.cos(lat) * np.sin(lon)
-    z = R * np.sin(lat)
-
-    return np.stack([x, y, z]).T
+from . import transform
 
 
 class Resampler:
@@ -92,12 +82,12 @@ class KDTreeResampler(Resampler):
     """Build a KDTree for lat/lon pairs to find the nearest neighbour."""
 
     def __init__(self, lon, lat):
-        xyz = latlon2xyz(np.array([lon, lat]).T)
+        xyz = transform.latlon2xyz(np.array([lon, lat]).T)
 
         self.tree = KDTree(xyz)
 
     def get_values(self, m, coords):
-        xyz = latlon2xyz(np.asarray(coords))
+        xyz = transform.latlon2xyz(np.asarray(coords))
 
         _, idx = self.tree.query(xyz)
 
@@ -105,22 +95,39 @@ class KDTreeResampler(Resampler):
 
 
 class DelaunayResampler(Resampler):
-    """Perform a Delaunay triangulation to find the neighbouring cells."""
+    """Perform a Delaunay triangulation to find the neighbouring cells.
+
+    References:
+        https://www.redblobgames.com/x/1842-delaunay-voronoi-sphere/
+    """
 
     def __init__(self, lon, lat):
-        lon = (np.asarray(lon) + 180) % 360 - 180  # Ensure lon [-180, 180]
-        self.tri = Delaunay(np.stack([lon, lat], axis=-1))
+        xy = transform.latlon2stereographic(np.array([lon, lat]).T)
+
+        self.xyz = transform.latlon2xyz(np.array([lon, lat]).T)
+        self.tri = Delaunay(xy)
 
     def get_values(self, m, coords):
-        triangles = self.tri.find_simplex(coords)
+        coords = np.asarray(coords)
+        m = np.asarray(m)
 
-        X = self.tri.transform[triangles, :2]
-        Y = coords - self.tri.transform[triangles, 2]
+        # Triangulation in stereographic projection
+        xy = transform.latlon2stereographic(coords)
+        triangles = self.tri.find_simplex(xy)
+        valid = triangles >= 0
 
         idx = self.tri.simplices[triangles]
 
-        b = np.einsum("...jk,...k->...j", X, Y)
-        weights = np.concatenate([b, 1 - b.sum(axis=-1)[..., np.newaxis]], axis=-1)
-        valid = triangles >= 0
+        # Compute barycentric weights in 3D
+        verts_xyz = self.xyz[idx]
+        v0, v1, v2 = verts_xyz[:, 0], verts_xyz[:, 1], verts_xyz[:, 2]
+        p = transform.latlon2xyz(coords)
 
-        return np.where(valid, (np.asarray(m)[idx] * weights).sum(axis=-1), np.nan)
+        area_total = np.linalg.norm(np.cross(v1 - v0, v2 - v0), axis=1)
+        w0 = np.linalg.norm(np.cross(v1 - p, v2 - p), axis=1) / area_total
+        w1 = np.linalg.norm(np.cross(v2 - p, v0 - p), axis=1) / area_total
+        w2 = 1.0 - w0 - w1
+
+        weights = np.stack([w0, w1, w2], axis=-1)
+
+        return np.where(valid, (m[idx] * weights).sum(axis=-1), np.nan)
