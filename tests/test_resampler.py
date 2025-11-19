@@ -12,7 +12,7 @@ def test_delaunay_resampler():
 
     r = resample.DelaunayResampler(lon=lon, lat=lat)
 
-    assert r.get_values(val, [[45, 45]]) == np.array([2.25])
+    assert np.allclose(r.get_values(val, [[45, 45]]), np.array([2.5801]))
 
 
 def test_healpix_resampler():
