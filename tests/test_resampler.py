@@ -25,6 +25,17 @@ def test_healpix_resampler():
     assert r.get_values(val, [[0, 0]]) == np.array([4])
 
 
+def test_healpix_resampler_no_coords():
+    """Test if a HEALPix DataArray without coordinate is sampled correctly."""
+    nside = 1
+    nest = True
+    val = xr.DataArray(np.arange(12), dims=("cell",))
+
+    r = resample.HEALPixResampler(nside=nside, nest=nest)
+
+    assert r.get_values(val, [[0, 0]]) == np.array([4])
+
+
 def test_healpix_resampler_sparse():
     nside = 1
     nest = True

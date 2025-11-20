@@ -62,10 +62,18 @@ class HEALPixResampler(Resampler):
             lonlat=True,
         )
 
-        if isinstance(m, xr.DataArray):
-            # Using coordinate **values** allows sparse HEALPix grids to be supported.
-            dim = m.dims[0]
-            return m.sel({dim: idx}, method="nearest").where(lambda x: x[dim] == idx)
+        if m.size < hp.nside2npix(self.nside):
+            if isinstance(m, xr.DataArray):
+                # Using coordinate **values** allows sparse HEALPix grids to be supported.
+                dim = m.dims[0]
+                if dim in m.coords:
+                    return m.sel({dim: idx}, method="nearest").where(
+                        lambda x: x[dim] == idx
+                    )
+            raise ValueError(
+                "Sparse HEALPix grids need to be passed "
+                "as an xr.DataArray that contains the pixel coordinates."
+            )
         else:
             return m[idx]
 
