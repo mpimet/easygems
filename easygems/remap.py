@@ -1,8 +1,7 @@
 import numpy as np
 import xarray as xr
-from scipy.spatial import Delaunay
 
-from . import transform
+from . import resample
 
 
 def compute_weights_delaunay(points, xi):
@@ -28,31 +27,8 @@ def compute_weights_delaunay(points, xi):
     See also:
         `apply_weights`
     """
-    # Convert coordinates into stereographic and Cartesian coordinates
-    # for triangulation and weight computation respectively.
-    src_xy = transform.latlon2stereographic(np.array(points).T)
-    src_xyz = transform.latlon2xyz(np.array(points).T)
-
-    tgt_xy = transform.latlon2stereographic(np.stack(xi, axis=-1))
-    tgt_xyz = transform.latlon2xyz(np.stack(xi, axis=-1))
-
-    # Triangulation in stereographic projection
-    tri = Delaunay(src_xy)
-    triangles = tri.find_simplex(tgt_xy)
-    src_idx = tri.simplices[triangles]
-    valid = triangles >= 0
-
-    # Compute barycentric weights in 3D
-    verts_xyz = src_xyz[src_idx]
-    v0, v1, v2 = verts_xyz[:, 0], verts_xyz[:, 1], verts_xyz[:, 2]
-    p = tgt_xyz
-
-    area_total = np.linalg.norm(np.cross(v1 - v0, v2 - v0), axis=1)
-    w0 = np.linalg.norm(np.cross(v1 - p, v2 - p), axis=1) / area_total
-    w1 = np.linalg.norm(np.cross(v2 - p, v0 - p), axis=1) / area_total
-    w2 = 1.0 - w0 - w1
-
-    weights = np.stack([w0, w1, w2], axis=-1)
+    resampler = resample.DelaunayResampler(points[0], points[1])
+    src_idx, weights, valid = resampler.get_weights(np.stack(xi, axis=-1))
 
     return xr.Dataset(
         data_vars={
