@@ -86,7 +86,10 @@ def map_show(
         ax.get_figure().set_dpi(dpi)
 
     img = sample_image(var, resampler, ax, antialias)
-    extent = [img.x[0], img.x[-1], img.y[0], img.y[-1]]
+
+    # Use the original map extent, as the x and y coordinates in img
+    # are shifted by half a pixel to create middle points.
+    extent = ax.get_xlim() + ax.get_ylim()
 
     return ax.imshow(img, extent=extent, origin="lower", **kwargs)
 
