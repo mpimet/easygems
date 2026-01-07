@@ -10,7 +10,10 @@ def create_geoaxis(add_coastlines=True, **subplot_kw):
     if "projection" not in subplot_kw:
         subplot_kw["projection"] = ccrs.Robinson(central_longitude=-135.58)
 
-    _, ax = plt.subplots(subplot_kw=subplot_kw)
+    # The GeoAxes check in get_current_geoaxis() always creates a figure.
+    # Here, we need to ensure that we reuse this figure instead of creating a new one.
+    fig = plt.gcf()
+    ax = fig.add_subplot(111, **subplot_kw)
     ax.set_global()
 
     if add_coastlines:
