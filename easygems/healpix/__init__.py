@@ -10,13 +10,22 @@ from ..show import map_show, map_contour
 
 
 def get_nest(dx):
-    return dx.cf["grid_mapping"].healpix_order in ["nest", "nested"]
+    try:
+        # Check HEALPix grid parameters compliant with CF Conventions
+        indexing_scheme = dx.cf["grid_mapping"].indexing_scheme
+
+        return indexing_scheme == "nested"
+    except AttributeError:
+        # Check legacy HEALPix grid parameters
+        indexing_scheme = dx.cf["grid_mapping"].healpix_order
+
+        return indexing_scheme in ["nest", "nested"]
 
 
 def get_nside(dx):
     try:
-        return dx.cf["grid_mapping"].healpix_nside
-    except (AttributeError, KeyError):
+        grid_mapping = dx.cf["grid_mapping"]
+    except AttributeError:
         if dx.squeeze().ndim > 1:
             raise ValueError(
                 "Cannot infer the HEALPix resolution from a multidimensional dataset.\n"
@@ -25,6 +34,11 @@ def get_nside(dx):
                 "Reference: https://easy.gems.dkrz.de/Processing/datasets/remapping.html#storing-the-coordinate-reference-system"
             )
         return healpix.npix2nside(dx.size)
+    else:
+        try:
+            return healpix.order2nside(grid_mapping.refinement_level)
+        except AttributeError:
+            return grid_mapping.healpix_nside
 
 
 def get_npix(dx):
@@ -89,8 +103,8 @@ def guess_crs(ds: xr.Dataset):
         name="crs",
         attrs={
             "grid_mapping_name": "healpix",
-            "healpix_nside": healpix.npix2nside(pix.size),
-            "healpix_order": "nest",
+            "refinement_level": healpix.nside2order(healpix.npix2nside(pix.size)),
+            "indexing_scheme": "nested",
         },
     )
     return ds.assign_coords(crs=crs)
@@ -104,7 +118,7 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
     else:
         ds = fix_crs(ds)
 
-    cell = ds.get("cell") if "cell" in ds.dims else np.arange(get_npix(ds))
+    cell = ds.get("cell").values if "cell" in ds.dims else np.arange(get_npix(ds))
 
     lons, lats = healpix.pix2ang(
         get_nside(ds), cell.astype("i8"), nest=get_nest(ds), lonlat=True
@@ -116,7 +130,11 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
         # While this is mathematically valid, it may be unexpected in Earth system science.
         lons %= 360
     return ds.assign_coords(
-        cell=cell,
+        cell=(
+            ("cell",),
+            cell,
+            {"standard_name": "healpix_index"},
+        ),
         lat=(
             ("cell",),
             lats,
