@@ -118,7 +118,7 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
     else:
         ds = fix_crs(ds)
 
-    cell = ds.get("cell") if "cell" in ds.dims else np.arange(get_npix(ds))
+    cell = ds.get("cell").values if "cell" in ds.dims else np.arange(get_npix(ds))
 
     lons, lats = healpix.pix2ang(
         get_nside(ds), cell.astype("i8"), nest=get_nest(ds), lonlat=True
@@ -130,7 +130,11 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
         # While this is mathematically valid, it may be unexpected in Earth system science.
         lons %= 360
     return ds.assign_coords(
-        cell=cell,
+        cell=(
+            ("cell",),
+            cell,
+            {"standard_name": "healpix_index"},
+        ),
         lat=(
             ("cell",),
             lats,
