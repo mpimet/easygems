@@ -103,8 +103,8 @@ def guess_crs(ds: xr.Dataset):
         name="crs",
         attrs={
             "grid_mapping_name": "healpix",
-            "healpix_nside": healpix.npix2nside(pix.size),
-            "healpix_order": "nest",
+            "refinement_level": healpix.nside2order(healpix.npix2nside(pix.size)),
+            "indexing_scheme": "nested",
         },
     )
     return ds.assign_coords(crs=crs)
