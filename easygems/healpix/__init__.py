@@ -24,8 +24,8 @@ def get_nest(dx):
 
 def get_nside(dx):
     try:
-        return dx.cf["grid_mapping"].healpix_nside
-    except (AttributeError, KeyError):
+        grid_mapping = dx.cf["grid_mapping"]
+    except AttributeError:
         if dx.squeeze().ndim > 1:
             raise ValueError(
                 "Cannot infer the HEALPix resolution from a multidimensional dataset.\n"
@@ -34,6 +34,11 @@ def get_nside(dx):
                 "Reference: https://easy.gems.dkrz.de/Processing/datasets/remapping.html#storing-the-coordinate-reference-system"
             )
         return healpix.npix2nside(dx.size)
+    else:
+        try:
+            return healpix.order2nside(grid_mapping.refinement_level)
+        except AttributeError:
+            return grid_mapping.healpix_nside
 
 
 def get_npix(dx):
