@@ -10,7 +10,16 @@ from ..show import map_show, map_contour
 
 
 def get_nest(dx):
-    return dx.cf["grid_mapping"].healpix_order in ["nest", "nested"]
+    try:
+        # Check HEALPix grid parameters compliant with CF Conventions
+        indexing_scheme = dx.cf["grid_mapping"].indexing_scheme
+
+        return indexing_scheme == "nested"
+    except AttributeError:
+        # Check legacy HEALPix grid parameters
+        indexing_scheme = dx.cf["grid_mapping"].healpix_order
+
+        return indexing_scheme in ["nest", "nested"]
 
 
 def get_nside(dx):
