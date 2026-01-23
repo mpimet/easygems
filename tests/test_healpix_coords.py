@@ -1,14 +1,28 @@
+from itertools import product
+
 import pytest
-from easygems.healpix import attach_coords, get_nside
+from easygems.healpix import attach_coords, get_nest, get_nside
 
 import cf_xarray as cf_xarray
 import numpy as np
 import xarray as xr
 
 
-@pytest.fixture(params=["crs", "healpix"])
+@pytest.fixture(params=product(["crs", "healpix"], ["legacy", "cf"]))
 def raw_ds(request):
-    crs_name = request.param
+    crs_name = request.param[0]
+
+    if request.param[1] == "cf":
+        map_parameters = {
+            "refinement_level": 0,
+            "indexing_scheme": "nested",
+        }
+    elif request.param[1] == "legacy":
+        map_parameters = {
+            "healpix_nside": 1,
+            "healpix_order": "nest",
+        }
+
     return xr.Dataset(
         coords={
             crs_name: (
@@ -16,8 +30,7 @@ def raw_ds(request):
                 [0],
                 {
                     "grid_mapping_name": "healpix",
-                    "healpix_nside": 1,
-                    "healpix_order": "nest",
+                    **map_parameters,
                 },
             )
         }
@@ -54,7 +67,7 @@ def test_attach_coords_no_crs():
     ds = attach_coords(ds)
 
     assert ds.crs
-    assert ds.crs.healpix_nside == 2
+    assert ds.crs.refinement_level == 1
 
 
 def test_get_nside(raw_ds):
