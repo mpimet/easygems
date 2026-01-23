@@ -41,7 +41,8 @@ def test_attach_coords_fixes_crs(raw_ds):
     ds = attach_coords(raw_ds)
 
     assert ds.cf["grid_mapping"].shape == ()
-    assert ds.cf["grid_mapping"].attrs == raw_ds.cf["grid_mapping"].attrs
+    assert ds.cf["grid_mapping"].refinement_level == 0
+    assert ds.cf["grid_mapping"].indexing_scheme == "nested"
     assert ds.cf["grid_mapping"].name == raw_ds.cf["grid_mapping"].name
 
 
