@@ -81,7 +81,19 @@ def fix_crs(ds: xr.Dataset):
     # to be compatible with netcdf
     grid_mapping_var = ds.cf["grid_mapping"].name
     ds = ds.drop_vars(grid_mapping_var).assign_coords(
-        {grid_mapping_var: ((), 0, ds.cf["grid_mapping"].attrs)}
+        {
+            grid_mapping_var: (
+                (),
+                0,
+                {
+                    # Use CF compliant HEALPix map parameters.
+                    # https://cfconventions.org/Data/cf-conventions/cf-conventions-1.13/cf-conventions.html#healpix
+                    "grid_mapping_name": "healpix",
+                    "refinement_level": healpix.nside2order(get_nside(ds)),
+                    "indexing_scheme": "nested" if get_nest(ds) else "ring",
+                },
+            )
+        }
     )
     return ds
 
