@@ -73,3 +73,7 @@ def test_attach_coords_no_crs():
 def test_get_nside(raw_ds):
     assert get_nside(raw_ds) == 1
     assert get_nside(np.arange(12)) == 1
+
+
+def test_get_nest(raw_ds):
+    assert get_nest(raw_ds)
