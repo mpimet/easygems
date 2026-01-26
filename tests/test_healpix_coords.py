@@ -1,7 +1,7 @@
 from itertools import product
 
 import pytest
-from easygems.healpix import attach_coords, get_nest, get_nside
+from easygems.healpix import attach_coords, get_index, get_nest, get_nside
 
 import cf_xarray as cf_xarray
 import numpy as np
@@ -78,3 +78,26 @@ def test_get_nside(raw_ds):
 
 def test_get_nest(raw_ds):
     assert get_nest(raw_ds)
+
+
+@pytest.mark.parametrize("known_name", ["cell", "value", "values"])
+def test_get_index_byname(raw_ds, known_name):
+    """Test if we can find the HEALPix index by looking for known short names."""
+    ds = raw_ds.assign_coords({known_name: np.arange(12)})
+
+    assert np.array_equal(get_index(ds), ds[known_name].values)
+
+
+def test_get_index_bycf(raw_ds):
+    """Test if we can find the HEALPix index using CF Conventions."""
+    ds = raw_ds.assign_coords(
+        {
+            "unknown_name": (
+                ("unknown_name",),
+                np.arange(12),
+                {"standard_name": "healpix_index"},
+            )
+        }
+    )
+
+    assert np.array_equal(get_index(ds), ds["unknown_name"].values)

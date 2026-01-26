@@ -45,6 +45,19 @@ def get_npix(dx):
     return healpix.nside2npix(get_nside(dx))
 
 
+def get_index(dx):
+    for c in dx.coords.values():
+        if c.attrs.get("standard_name") == "healpix_index":
+            return c.values
+
+    if "cell" in dx.dims:
+        return dx.cell.values
+    elif "values" in dx.dims:
+        return dx["values"].values
+    elif "value" in dx.dims:
+        return dx.value.values
+
+
 def get_extent_mask(dx, extent):
     lon = dx.lon
     lat = dx.lat
@@ -104,12 +117,7 @@ def guess_crs(ds: xr.Dataset):
         stacklevel=4,
     )
 
-    if "cell" in ds.dims:
-        pix = ds.cell
-    elif "values" in ds.dims:
-        pix = ds.values
-    elif "value" in ds.dims:
-        pix = ds.value
+    pix = get_index(ds)
 
     crs = xr.DataArray(
         name="crs",
