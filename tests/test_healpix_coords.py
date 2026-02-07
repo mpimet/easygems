@@ -25,16 +25,25 @@ def raw_ds(request):
 
     return xr.Dataset(
         coords={
-            crs_name: (
-                ("crs",),
-                [0],
-                {
+            crs_name: xr.DataArray(
+                name=crs_name,
+                attrs={
                     "grid_mapping_name": "healpix",
                     **map_parameters,
                 },
             )
         }
     )
+
+
+@pytest.fixture
+def ds(raw_ds):
+    ds = raw_ds.assign_coords(
+        cell=(("cell",), np.arange(12), {"standard_name": "healpix_index"})
+    )
+    ds = ds.assign(variable=(("cell",), np.ones(12), {"grid_mapping": "healpix"}))
+
+    return ds
 
 
 def test_attach_coords_fixes_crs(raw_ds):
@@ -74,6 +83,16 @@ def test_attach_coords_no_crs():
 def test_get_nside(raw_ds):
     assert get_nside(raw_ds) == 1
     assert get_nside(np.arange(12)) == 1
+
+
+def test_get_nside_dataarray(ds):
+    da = ds["variable"]
+
+    # Should work with...
+    assert get_nside(da) == 1
+
+    # .. and without CRS on data arrays
+    assert get_nside(da.drop_vars(da.cf["grid_mapping"].name)) == 1
 
 
 def test_get_nest(raw_ds):
