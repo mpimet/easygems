@@ -25,10 +25,9 @@ def raw_ds(request):
 
     return xr.Dataset(
         coords={
-            crs_name: (
-                ("crs",),
-                [0],
-                {
+            crs_name: xr.DataArray(
+                name=crs_name,
+                attrs={
                     "grid_mapping_name": "healpix",
                     **map_parameters,
                 },
