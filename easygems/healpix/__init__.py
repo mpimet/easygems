@@ -25,7 +25,8 @@ def get_nest(dx):
 def get_nside(dx):
     try:
         grid_mapping = dx.cf["grid_mapping"]
-    except AttributeError:
+    except (KeyError, AttributeError):
+        # Catch no CF (KeyError) and no grid mapping (AttributeError)
         if dx.squeeze().ndim > 1:
             raise ValueError(
                 "Cannot infer the HEALPix resolution from a multidimensional dataset.\n"
