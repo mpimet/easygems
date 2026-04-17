@@ -1,6 +1,6 @@
 import numpy as np
 import xarray as xr
-from scipy.spatial import Delaunay
+from scipy.spatial import ConvexHull, KDTree
 
 from . import transform
 
@@ -8,9 +8,8 @@ from . import transform
 def compute_weights_delaunay(points, xi):
     """Compute remapping weights for linear interpolation.
 
-    The interpolation is based on a Delaunay triangulation on the sphere [0].
-
-    [0]: https://www.redblobgames.com/x/1842-delaunay-voronoi-sphere/
+    Uses a convex hull of 3D coordinates as a spherical Delaunay triangulation,
+    avoiding all projection artifacts at poles and the dateline.
 
     Args:
         points (tuple[ndarrays]): Tuple with source grid coordinates.
@@ -28,19 +27,20 @@ def compute_weights_delaunay(points, xi):
     See also:
         `apply_weights`
     """
-    # Convert coordinates into stereographic and Cartesian coordinates
-    # for triangulation and weight computation respectively.
-    src_xy = transform.latlon2stereographic(np.array(points).T)
+    # Convert coordinates into Cartesian coordinates
+    # for triangulation and weight computation.
     src_xyz = transform.latlon2xyz(np.array(points).T)
-
-    tgt_xy = transform.latlon2stereographic(np.stack(xi, axis=-1))
     tgt_xyz = transform.latlon2xyz(np.stack(xi, axis=-1))
 
-    # Triangulation in stereographic projection
-    tri = Delaunay(src_xy)
-    triangles = tri.find_simplex(tgt_xy)
-    src_idx = tri.simplices[triangles]
-    valid = triangles >= 0
+    simplices = ConvexHull(src_xyz).simplices
+
+    centroids = src_xyz[simplices].mean(axis=1)
+    centroids /= np.linalg.norm(centroids, axis=1, keepdims=True)
+    centroid_tree = KDTree(centroids)
+
+    tgt_xyz /= np.linalg.norm(tgt_xyz, axis=1, keepdims=True)
+    _, cidx = centroid_tree.query(tgt_xyz)
+    src_idx = simplices[cidx]
 
     # Compute barycentric weights in 3D
     verts_xyz = src_xyz[src_idx]
@@ -58,7 +58,7 @@ def compute_weights_delaunay(points, xi):
         data_vars={
             "src_idx": (("tgt_idx", "tri"), src_idx),
             "weights": (("tgt_idx", "tri"), weights),
-            "valid": (("tgt_idx",), valid),
+            "valid": (("tgt_idx",), np.full(cidx.size, fill_value=True)),
         }
     )
 
