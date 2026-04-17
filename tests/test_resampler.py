@@ -6,9 +6,9 @@ import xarray as xr
 
 
 def test_delaunay_resampler():
-    lon = [0, 90, 45]
-    lat = [0, 0, 90]
-    val = [1, 2, 3]
+    lon = [0, 90, 45, 180]
+    lat = [0, 0, 90, 0]
+    val = [1, 2, 3, 4]
 
     r = resample.DelaunayResampler(lon=lon, lat=lat)
 
