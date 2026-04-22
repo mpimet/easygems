@@ -16,6 +16,7 @@ cf_xarray = "*"
 healpix = "*"
 matplotlib = "*"
 cartopy = "*"
+regionmask = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"

@@ -4,6 +4,7 @@ import numpy as np
 import cf_xarray as cf_xarray
 import xarray as xr
 import healpix
+import regionmask
 
 from ..resample import HEALPixResampler
 from ..show import map_show, map_contour
@@ -80,6 +81,21 @@ def get_full_chunks(indices, chunksize):
 
 def isel_extent(dx, extent):
     return np.arange(get_npix(dx))[get_extent_mask(dx, extent)]
+
+
+def isel_regionmask(dx, region):
+    """Return the HEALPix indices inside given AR6 SREX region(s).
+
+    Reference:
+        https://regionmask.readthedocs.io/en/stable/defined_scientific.html#ar6-regions
+    """
+    if "lon" not in dx.variables and "lat" not in dx.variables:
+        raise AttributeError("Could not find 'lat' and 'lon' variables.")
+
+    regions = regionmask.defined_regions.ar6.all
+    mask = regions.mask(dx.lon, dx.lat).isin(regions.map_keys(region))
+
+    return get_index(dx)[mask]
 
 
 def broadcast_array(dx, fill_value=np.nan):
