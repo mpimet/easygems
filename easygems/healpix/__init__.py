@@ -9,6 +9,29 @@ from ..resample import HEALPixResampler
 from ..show import map_show, map_contour
 
 
+_DATATREE_AVAILABLE = (
+    hasattr(xr, "DataTree")
+    and hasattr(xr.DataTree, "is_leaf")
+    and hasattr(xr.DataTree, "to_dataset")
+)
+
+
+def _convert_if_datatree(dt_or_x):
+    """Convert xr.DataTree objects into xr.Datasets.
+
+    All other objects are returned unchanged.
+    """
+    if _DATATREE_AVAILABLE and isinstance(dt_or_x, xr.DataTree):
+        if dt_or_x.is_leaf:
+            return dt_or_x.to_dataset()
+        raise TypeError(
+            f"Only leaf DataTree nodes can be converted to a Dataset, "
+            f"but node '{dt_or_x.name}' has children: {list(dt_or_x.children)}"
+        )
+
+    return dt_or_x
+
+
 def get_nest(dx):
     warnings.warn(
         "This function is deprecated. Use `is_nested()` instead.",
@@ -19,6 +42,8 @@ def get_nest(dx):
 
 
 def is_nested(dx):
+    dx = _convert_if_datatree(dx)
+
     try:
         # Check HEALPix grid parameters compliant with CF Conventions
         indexing_scheme = dx.cf["grid_mapping"].indexing_scheme
@@ -39,6 +64,8 @@ def is_nested(dx):
 
 
 def get_nside(dx):
+    dx = _convert_if_datatree(dx)
+
     try:
         grid_mapping = dx.cf["grid_mapping"]
     except (KeyError, AttributeError):
@@ -148,6 +175,8 @@ def guess_crs(ds: xr.Dataset):
 
 
 def attach_coords(ds: xr.Dataset, signed_lon=False):
+    ds = _convert_if_datatree(ds)
+
     try:
         ds.cf["grid_mapping"]
     except KeyError:
