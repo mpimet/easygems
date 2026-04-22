@@ -120,3 +120,26 @@ def test_get_index_bycf(raw_ds):
     )
 
     assert np.array_equal(get_index(ds), ds["unknown_name"].values)
+
+
+def test_invalid_crs():
+    """Test handling of CRS information with mixed conventions.
+
+    We should explicitly fail in cases
+    where the attribute names adhere to CF conventions,
+    but the values do not.
+    """
+    ds = xr.Dataset(
+        coords={
+            "crs": xr.DataArray(
+                attrs={
+                    "grid_mapping_name": "healpix",
+                    "refinement_level": 0,
+                    "indexing_scheme": "nest",
+                },
+            )
+        }
+    )
+
+    with pytest.raises(ValueError):
+        get_nest(ds)
