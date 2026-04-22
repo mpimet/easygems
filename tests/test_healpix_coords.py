@@ -1,7 +1,7 @@
 from itertools import product
 
 import pytest
-from easygems.healpix import attach_coords, get_index, get_nest, get_nside
+from easygems.healpix import attach_coords, get_index, get_nest, is_nested, get_nside
 
 import cf_xarray as cf_xarray
 import numpy as np
@@ -96,7 +96,12 @@ def test_get_nside_dataarray(ds):
 
 
 def test_get_nest(raw_ds):
-    assert get_nest(raw_ds)
+    with pytest.warns(DeprecationWarning):
+        assert get_nest(raw_ds)
+
+
+def test_is_nested(raw_ds):
+    assert is_nested(raw_ds)
 
 
 @pytest.mark.parametrize("known_name", ["cell", "value", "values"])
@@ -142,4 +147,4 @@ def test_invalid_crs():
     )
 
     with pytest.raises(ValueError):
-        get_nest(ds)
+        is_nested(ds)
