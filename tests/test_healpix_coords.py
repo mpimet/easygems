@@ -74,7 +74,8 @@ def test_attach_coords_adds_cell(raw_ds):
 def test_attach_coords_no_crs():
     ds = xr.Dataset(coords={"cell": np.arange(48)})
 
-    ds = attach_coords(ds)
+    with pytest.warns():
+        ds = attach_coords(ds)
 
     assert ds.crs
     assert ds.crs.refinement_level == 1
