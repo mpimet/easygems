@@ -14,6 +14,13 @@ def get_nest(dx):
         # Check HEALPix grid parameters compliant with CF Conventions
         indexing_scheme = dx.cf["grid_mapping"].indexing_scheme
 
+        valid_parameters = ("nested", "ring", "nuniq", "zuniq")
+        if indexing_scheme not in valid_parameters:
+            raise ValueError(
+                f"Indexing scheme '{indexing_scheme}' is not in the list of valid parameters: {valid_parameters}\n"
+                "Further details: https://cfconventions.org/cf-conventions/cf-conventions.html#healpix"
+            )
+
         return indexing_scheme == "nested"
     except AttributeError:
         # Check legacy HEALPix grid parameters
