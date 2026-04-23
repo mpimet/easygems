@@ -1,7 +1,7 @@
 from itertools import product
 
 import pytest
-from easygems.healpix import attach_coords, get_index, get_nest, get_nside
+from easygems.healpix import attach_coords, get_index, get_nest, is_nested, get_nside
 
 import cf_xarray as cf_xarray
 import numpy as np
@@ -74,7 +74,8 @@ def test_attach_coords_adds_cell(raw_ds):
 def test_attach_coords_no_crs():
     ds = xr.Dataset(coords={"cell": np.arange(48)})
 
-    ds = attach_coords(ds)
+    with pytest.warns():
+        ds = attach_coords(ds)
 
     assert ds.crs
     assert ds.crs.refinement_level == 1
@@ -96,7 +97,12 @@ def test_get_nside_dataarray(ds):
 
 
 def test_get_nest(raw_ds):
-    assert get_nest(raw_ds)
+    with pytest.warns(DeprecationWarning):
+        assert get_nest(raw_ds)
+
+
+def test_is_nested(raw_ds):
+    assert is_nested(raw_ds)
 
 
 @pytest.mark.parametrize("known_name", ["cell", "value", "values"])
@@ -120,3 +126,26 @@ def test_get_index_bycf(raw_ds):
     )
 
     assert np.array_equal(get_index(ds), ds["unknown_name"].values)
+
+
+def test_invalid_crs():
+    """Test handling of CRS information with mixed conventions.
+
+    We should explicitly fail in cases
+    where the attribute names adhere to CF conventions,
+    but the values do not.
+    """
+    ds = xr.Dataset(
+        coords={
+            "crs": xr.DataArray(
+                attrs={
+                    "grid_mapping_name": "healpix",
+                    "refinement_level": 0,
+                    "indexing_scheme": "nest",
+                },
+            )
+        }
+    )
+
+    with pytest.raises(ValueError):
+        is_nested(ds)

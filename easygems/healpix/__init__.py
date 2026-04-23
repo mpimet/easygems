@@ -10,9 +10,25 @@ from ..show import map_show, map_contour
 
 
 def get_nest(dx):
+    warnings.warn(
+        "This function is deprecated. Use `is_nested()` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return is_nested(dx)
+
+
+def is_nested(dx):
     try:
         # Check HEALPix grid parameters compliant with CF Conventions
         indexing_scheme = dx.cf["grid_mapping"].indexing_scheme
+
+        valid_parameters = ("nested", "ring", "nuniq", "zuniq")
+        if indexing_scheme not in valid_parameters:
+            raise ValueError(
+                f"Indexing scheme '{indexing_scheme}' is not in the list of valid parameters: {valid_parameters}\n"
+                "Further details: https://cfconventions.org/cf-conventions/cf-conventions.html#healpix"
+            )
 
         return indexing_scheme == "nested"
     except AttributeError:
@@ -104,7 +120,7 @@ def fix_crs(ds: xr.Dataset):
                     # https://cfconventions.org/Data/cf-conventions/cf-conventions-1.13/cf-conventions.html#healpix
                     "grid_mapping_name": "healpix",
                     "refinement_level": healpix.nside2order(get_nside(ds)),
-                    "indexing_scheme": "nested" if get_nest(ds) else "ring",
+                    "indexing_scheme": "nested" if is_nested(ds) else "ring",
                 },
             )
         }
@@ -142,7 +158,7 @@ def attach_coords(ds: xr.Dataset, signed_lon=False):
     cell = ds.get("cell").values if "cell" in ds.dims else np.arange(get_npix(ds))
 
     lons, lats = healpix.pix2ang(
-        get_nside(ds), cell.astype("i8"), nest=get_nest(ds), lonlat=True
+        get_nside(ds), cell.astype("i8"), nest=is_nested(ds), lonlat=True
     )
     if signed_lon:
         lons = np.where(lons <= 180, lons, lons - 360)
@@ -182,7 +198,7 @@ def healpix_contour(var, method="nearest", nest=True, **kwargs):
 
 
 __all__ = [
-    "get_nest",
+    "is_nested",
     "get_nside",
     "get_npix",
     "get_extent_mask",
