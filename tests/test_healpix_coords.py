@@ -111,6 +111,7 @@ def test_get_index_byname(raw_ds, known_name):
     ds = raw_ds.assign_coords({known_name: np.arange(12)})
 
     assert np.array_equal(get_index(ds), ds[known_name].values)
+    assert get_index(ds).dtype == np.int64
 
 
 def test_get_index_bycf(raw_ds):
@@ -126,6 +127,7 @@ def test_get_index_bycf(raw_ds):
     )
 
     assert np.array_equal(get_index(ds), ds["unknown_name"].values)
+    assert get_index(ds).dtype == np.int64
 
 
 def test_invalid_crs():
