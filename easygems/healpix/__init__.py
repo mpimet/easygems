@@ -62,17 +62,28 @@ def get_npix(dx):
     return healpix.nside2npix(get_nside(dx))
 
 
-def get_index(dx, dtype=np.int64):
-    """Return the (most likely to be) HEALPix index values."""
-    for c in dx.coords.values():
-        if c.attrs.get("standard_name") == "healpix_index":
-            index = c.values
+def get_index_name(dx):
+    """Return the name of the (most likely) HEALPix index."""
+    for name, coord in dx.coords.items():
+        if coord.attrs.get("standard_name") == "healpix_index":
+            return name
 
     for possible_index in ("cell", "value", "values"):
         if possible_index in dx.dims:
-            index = dx[possible_index].values
+            return possible_index
 
-    return index.astype(dtype)
+    raise KeyError("Could not find HEALPix index.")
+
+
+def get_index(dx, dtype=np.int64):
+    """Return the (most likely) HEALPix index."""
+    healpix_index = get_index_name(dx)
+    return xr.DataArray(
+        name=healpix_index,
+        dims=(healpix_index,),
+        data=dx[healpix_index].values.astype(dtype),
+        attrs={"standard_name": "healpix_index"},
+    )
 
 
 def get_extent_mask(dx, extent):
