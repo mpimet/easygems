@@ -86,16 +86,30 @@ def get_index(dx, dtype=np.int64):
     )
 
 
-def get_extent_mask(dx, extent):
+def get_index_extent(dx, extent):
+    """Return indices of all HEALPix cells within a geospatial extent."""
+    healpix_index = get_index(dx)
+
+    # Get coordinates and N/S/E/W bounds
     lon = dx.lon
     lat = dx.lat
+    w, e, s, n = extent
 
-    w, e, s, n = extent  # Shortcut for N/S/E/W bounds
-
+    # Compute boolean mask
     is_in_lon = (lon - w) % 360 < (e - w) % 360  # consider sign change
     is_in_lat = (lat > s) & (lat < n)
+    is_in_extent = is_in_lon & is_in_lat
 
-    return is_in_lon & is_in_lat
+    return healpix_index.where(is_in_extent.compute(), drop=True).astype(
+        healpix_index.dtype
+    )
+
+
+def select_extent(dx, extent):
+    """Return a subselected HEALPix dataset within a geospatial extent."""
+    idx = get_index_extent(dx, extent)
+
+    return dx.sel({idx.name: idx})
 
 
 def get_full_chunks(indices, chunksize):
@@ -103,10 +117,6 @@ def get_full_chunks(indices, chunksize):
     used_chunks = np.unique(np.asarray(indices) // chunksize)
 
     return (used_chunks[:, np.newaxis] * chunksize + np.arange(chunksize)).flatten()
-
-
-def isel_extent(dx, extent):
-    return np.arange(get_npix(dx))[get_extent_mask(dx, extent)]
 
 
 def broadcast_array(dx, fill_value=np.nan):
@@ -212,11 +222,11 @@ __all__ = [
     "is_nested",
     "get_index",
     "get_index_name",
+    "get_index_extent",
+    "select_extent",
     "get_nside",
     "get_npix",
-    "get_extent_mask",
     "get_full_chunks",
-    "isel_extent",
     "fix_crs",
     "attach_coords",
     "healpix_show",
