@@ -210,6 +210,8 @@ def healpix_contour(var, method="nearest", nest=True, **kwargs):
 
 __all__ = [
     "is_nested",
+    "get_index",
+    "get_index_name",
     "get_nside",
     "get_npix",
     "get_extent_mask",
