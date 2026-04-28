@@ -18,6 +18,7 @@ healpy = { version = "*", markers = "sys_platform != 'win32'" }
 matplotlib = "*"
 cartopy = "*"
 pyproj = "*"
+regionmask = ">=0.13.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"

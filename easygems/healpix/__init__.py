@@ -5,6 +5,7 @@ import cf_xarray as cf_xarray
 import xarray as xr
 import healpix
 import pyproj
+import regionmask
 
 from ..resample import HEALPixResampler
 from ..show import map_show, map_contour
@@ -141,6 +142,44 @@ def select_section(dx, lon1, lat1, lon2, lat2, **kwargs):
     return dx.sel({idx.name: idx})
 
 
+def get_index_regionmask(dx, region, defined_regions=None):
+    """Return the HEALPix indices inside a defined region.
+
+    Note:
+        Any defined region following the `regionmask` specification can be used.
+        The AR6 SREX region(s) are the default.
+
+    Reference:
+        https://regionmask.readthedocs.io/en/stable/defined_scientific.html
+    """
+    if "lon" not in dx.variables and "lat" not in dx.variables:
+        raise AttributeError("Could not find 'lat' and 'lon' variables.")
+
+    if defined_regions is None:
+        defined_regions = regionmask.defined_regions.ar6.all
+
+    is_in_region = defined_regions.mask(dx.lon, dx.lat).isin(
+        defined_regions.map_keys(region)
+    )
+
+    return get_index(dx)[is_in_region]
+
+
+def select_regionmask(dx, region, defined_regions=None):
+    """Return a subselected HEALPix dataset inside a given AR6 SREX region(s).
+
+    Note:
+        Any defined region following the `regionmask` specification can be used.
+        The AR6 SREX region(s) are the default.
+
+    Reference:
+        https://regionmask.readthedocs.io/en/stable/defined_scientific.html
+    """
+    idx = get_index_regionmask(dx, region, defined_regions=defined_regions)
+
+    return dx.sel({idx.name: idx})
+
+
 def get_full_chunks(indices, chunksize):
     """Return indices of complete chunks, given a list of indices and a chunksize."""
     used_chunks = np.unique(np.asarray(indices) // chunksize)
@@ -255,6 +294,8 @@ __all__ = [
     "select_extent",
     "get_index_section",
     "select_section",
+    "get_index_regionmask",
+    "select_regionmask",
     "get_nside",
     "get_npix",
     "get_full_chunks",
