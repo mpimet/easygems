@@ -17,6 +17,7 @@ healpix = "*"
 healpy = { version = "*", markers = "sys_platform != 'win32'" }
 matplotlib = "*"
 cartopy = "*"
+pyproj = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"

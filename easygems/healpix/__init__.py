@@ -4,6 +4,7 @@ import numpy as np
 import cf_xarray as cf_xarray
 import xarray as xr
 import healpix
+import pyproj
 
 from ..resample import HEALPixResampler
 from ..show import map_show, map_contour
@@ -108,6 +109,34 @@ def get_index_extent(dx, extent):
 def select_extent(dx, extent):
     """Return a subselected HEALPix dataset within a geospatial extent."""
     idx = get_index_extent(dx, extent)
+
+    return dx.sel({idx.name: idx})
+
+
+def get_index_section(dx, lon1, lat1, lon2, lat2, nsample=3600):
+    """Return indices of all HEALPix cells along a geospatial section."""
+    healpix_index = get_index(dx)
+
+    coords = np.array(pyproj.Geod(ellps="WGS84").npts(lon1, lat1, lon2, lat2, nsample))
+    section_indices = healpix.ang2pix(
+        get_nside(dx),
+        coords[:, 0],
+        coords[:, 1],
+        nest=is_nested(dx),
+        lonlat=True,
+    )
+    section_indices = np.unique(section_indices)
+
+    is_on_section = healpix_index.isin(section_indices)
+
+    return healpix_index.where(is_on_section.compute(), drop=True).astype(
+        healpix_index.dtype
+    )
+
+
+def select_section(dx, lon1, lat1, lon2, lat2, **kwargs):
+    """Return indices of all HEALPix cells along a geospatial section."""
+    idx = get_index_section(dx, lon1, lat1, lon2, lat2, **kwargs)
 
     return dx.sel({idx.name: idx})
 
@@ -224,6 +253,8 @@ __all__ = [
     "get_index_name",
     "get_index_extent",
     "select_extent",
+    "get_index_section",
+    "select_section",
     "get_nside",
     "get_npix",
     "get_full_chunks",
