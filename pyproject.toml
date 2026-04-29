@@ -46,6 +46,9 @@ initial-content = """
   __version_tuple__ = (0, 0, 0)
 """
 
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
+
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
 build-backend = "poetry_dynamic_versioning.backend"
