@@ -97,6 +97,53 @@ def map_show(
     return ax.imshow(img, extent=extent, origin="lower", **kwargs)
 
 
+def map_diff(
+    var_a,
+    resampler_a,
+    var_b,
+    resampler_b,
+    ax=None,
+    antialias=False,
+    dpi=None,
+    add_coastlines=True,
+    **kwargs,
+):
+    """Plot the difference between two fields on a Cartopy GeoAxes.
+
+    Parameters:
+        var_a: array-like
+            Minuend
+        resampler_a: Resampler
+            Resampling from lon/lat coordinates to source index for var_a
+        var_b: array-like
+            Subtrahend
+        resampler_b: Resampler
+            Resampling from lon/lat coordinates to source index for var_b
+        ax: cartopy.GeoAxis
+        antialias: bool
+            If True, sample at double the resolution for anti-aliasing
+        dpi: int
+            Pixel resolution of created figure
+        add_coastlines: bool
+            Create GeoAxes with coastlines, if none is passed
+        **kwargs: Additional keyword argument passed to `plt.imshow()`
+    """
+    if ax is None:
+        ax = get_current_geoaxis(add_coastlines=add_coastlines)
+
+    if dpi is not None:
+        ax.get_figure().set_dpi(dpi)
+
+    img_a = sample_image(var_a, resampler_a, ax, antialias)
+    img_b = sample_image(var_b, resampler_b, ax, antialias)
+
+    # Use the original map extent, as the x and y coordinates in img
+    # are shifted by half a pixel to create middle points.
+    extent = ax.get_xlim() + ax.get_ylim()
+
+    return ax.imshow(img_a - img_b, extent=extent, origin="lower", **kwargs)
+
+
 def map_contour(
     var, resampler, ax=None, antialias=False, dpi=None, add_coastlines=True, **kwargs
 ):
