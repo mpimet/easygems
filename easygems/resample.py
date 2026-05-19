@@ -1,7 +1,7 @@
 import healpix as hp
 import numpy as np
 import xarray as xr
-from scipy.spatial import Delaunay, KDTree
+from scipy.spatial import ConvexHull, KDTree
 
 from . import transform
 
@@ -105,26 +105,31 @@ class KDTreeResampler(Resampler):
 class DelaunayResampler(Resampler):
     """Perform a Delaunay triangulation to find the neighbouring cells.
 
-    References:
-        https://www.redblobgames.com/x/1842-delaunay-voronoi-sphere/
+    Uses a convex hull of 3D coordinates as a spherical Delaunay triangulation,
+    avoiding all projection artifacts at poles and the dateline.
     """
 
     def __init__(self, lon, lat):
-        xy = transform.latlon2stereographic(np.array([lon, lat]).T)
-
         self.xyz = transform.latlon2xyz(np.array([lon, lat]).T)
-        self.tri = Delaunay(xy)
+        self.simplices = ConvexHull(self.xyz).simplices
+
+        centroids = self.xyz[self.simplices].mean(axis=1)
+        centroids /= np.linalg.norm(centroids, axis=1, keepdims=True)
+
+        self.centroid_tree = KDTree(centroids)
+
+    def find_simplex(self, xyz):
+        _, cidx = self.centroid_tree.query(xyz)
+        return self.simplices[cidx]
 
     def get_values(self, m, coords):
         coords = np.asarray(coords)
         m = np.asarray(m)
 
-        # Triangulation in stereographic projection
-        xy = transform.latlon2stereographic(coords)
-        triangles = self.tri.find_simplex(xy)
-        valid = triangles >= 0
+        xyz = transform.latlon2xyz(coords)
+        xyz /= np.linalg.norm(xyz, axis=1, keepdims=True)
 
-        idx = self.tri.simplices[triangles]
+        idx = self.find_simplex(xyz)
 
         # Compute barycentric weights in 3D
         verts_xyz = self.xyz[idx]
@@ -138,4 +143,4 @@ class DelaunayResampler(Resampler):
 
         weights = np.stack([w0, w1, w2], axis=-1)
 
-        return np.where(valid, (m[idx] * weights).sum(axis=-1), np.nan)
+        return (m[idx] * weights).sum(axis=-1)
