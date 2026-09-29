@@ -172,3 +172,33 @@ def map_contour(
     img = sample_image(var, resampler, ax, antialias)
 
     return ax.contour(img.x, img.y, img, **kwargs)
+
+
+def map_contourf(
+    var, resampler, ax=None, antialias=False, dpi=None, add_coastlines=True, **kwargs
+):
+    """Plot a variable on a Cartopy GeoAxes.
+
+    Parameters:
+        var: array-like
+            Variable to plot
+        resampler: Resampler
+            Resampling from lon/lat coordinates to source index
+        ax: cartopy.GeoAxis
+        antialias: bool
+            If True, sample at double the resolution for anti-aliasing
+        dpi: int
+            Pixel resolution of created figure
+        add_coastlines: bool
+            Create GeoAxes with coastlines, if none is passed
+        **kwargs: Additional keyword argument passed to `plt.imshow()`
+    """
+    if ax is None:
+        ax = get_current_geoaxis(add_coastlines=add_coastlines)
+
+    if dpi is not None:
+        ax.get_figure().set_dpi(dpi)
+
+    img = sample_image(var, resampler, ax, antialias)
+
+    return ax.contourf(img.x, img.y, img, **kwargs)
